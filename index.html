@@ -159,7 +159,7 @@
         
         #equipped-title-display { background: rgba(0,0,0,0.8); color: gold; padding: 2px 8px; border-radius: 8px; border: 1px solid gold; font-weight: bold; font-size: 0.8rem; z-index: 20; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.5); text-shadow: 1px 1px 0 #000; align-self: flex-start; margin-top: 4px; display: none;}
 
-        /* Battle Screen (Mobile Optimized) */
+        /* BATTLE SCREEN - MOBILE OPTIMIZED */
         #battle-screen { display: none; position: absolute; top:0; left:0; width:100%; height:100%; z-index: 30; background: #fff; flex-direction: column; }
         .battle-bg { flex: 1; position: relative; background-size: cover; background-position: bottom; overflow: hidden; }
         .bg-grass { 
@@ -175,24 +175,84 @@
                 linear-gradient(to bottom, #2b2b2b 0%, #555555 45%, #777777 55%, #333333 100%); 
         }
         
-        .pkmn-sprite { position: absolute; width: 35vw; max-width: 180px; height: auto; aspect-ratio: 1; object-fit: contain; image-rendering: pixelated; }
-        #enemy-sprite { top: 10%; right: 5%; }
-        .boss-sprite { width: 50vw !important; max-width: 250px !important; top: 0 !important; right: 0 !important; filter: drop-shadow(0 0 15px red); }
-        #player-sprite { bottom: 10%; left: 5%; transform: scaleX(-1); }
+        /* CẬP NHẬT SPRITE & STAT BOX CHO ĐIỆN THOẠI */
+        .pkmn-sprite { 
+            position: absolute; 
+            width: 48vw; /* Tăng kích thước Pokemon */
+            max-width: 220px; 
+            height: auto; 
+            aspect-ratio: 1; 
+            object-fit: contain; 
+            image-rendering: pixelated; 
+        }
+        .boss-sprite { 
+            width: 65vw !important; 
+            max-width: 300px !important; 
+            top: 2% !important; 
+            right: 0 !important; 
+            filter: drop-shadow(0 0 15px red); 
+        }
         
-        .stat-box { position: absolute; background: var(--retro-bg); border: 2px solid #000; padding: 4px 8px; border-radius: 4px; box-shadow: 2px 2px 0 #000; width: 45%; max-width: 180px; z-index: 10;}
-        #enemy-stats { top: 5%; left: 5%; }
-        #player-stats { bottom: 20%; right: 5%; }
+        /* Bố cục vị trí Pokemon khít lại */
+        #enemy-sprite { top: 12%; right: 5%; }
+        #player-sprite { bottom: 12%; left: 5%; transform: scaleX(-1); }
         
-        .hp-bar-bg { width: 100%; height: 10px; background: #555; border: 2px solid #000; border-radius: 4px; overflow: hidden; margin-top: 4px;}
+        .stat-box { 
+            position: absolute; 
+            background: var(--retro-bg); 
+            border: 3px solid #000; /* Viền dày hơn xíu */
+            padding: 8px 12px; /* Rộng rãi hơn */
+            border-radius: 6px; 
+            box-shadow: 3px 3px 0 #000; 
+            width: 55vw; /* Tăng độ rộng khung máu */
+            max-width: 250px; 
+            z-index: 10;
+        }
+        #enemy-stats { top: 8%; left: 5%; }
+        #player-stats { bottom: 18%; right: 5%; } /* Đẩy khung máu player lên cao chút để tránh vướng sprite */
+        
+        .hp-bar-bg { 
+            width: 100%; 
+            height: 12px; /* Mập hơn dễ nhìn */
+            background: #555; 
+            border: 2px solid #000; 
+            border-radius: 4px; 
+            overflow: hidden; 
+            margin-top: 6px;
+        }
         .hp-bar-fill { height: 100%; background: #22c55e; transition: width 0.5s ease, background-color 0.3s; }
         .hp-low { background: #ef4444 !important; animation: blink 0.5s infinite; }
         .hp-mid { background: #eab308 !important; }
         
-        #battle-menu { height: 40%; background: var(--retro-bg); border-top: var(--pixel-border); display: flex; flex-direction: column; z-index: 20;}
-        #dialog-box { padding: 8px 12px; font-size: 1.1rem; height: 35%; border-bottom: 2px solid #ccc; line-height: 1.2; overflow-y: auto;}
-        #action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; flex: 1; }
-        #action-btns button { font-size: 1.3rem; padding: 10px 5px; }
+        /* MENU CHIẾN ĐẤU */
+        #battle-menu { 
+            height: 38%; /* Cân bằng tỷ lệ vàng */
+            min-height: 240px;
+            background: var(--retro-bg); 
+            border-top: var(--pixel-border); 
+            display: flex; 
+            flex-direction: column; 
+            z-index: 20;
+        }
+        #dialog-box { 
+            padding: 12px 15px; 
+            font-size: 1.3rem; /* Chữ to hơn */
+            height: 35%; 
+            border-bottom: 3px solid #ccc; 
+            line-height: 1.3; 
+            overflow-y: auto;
+        }
+        #action-btns { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; /* Khoảng cách nút bấm rộng hơn */
+            padding: 12px; 
+            flex: 1; 
+        }
+        #action-btns button { 
+            font-size: 1.5rem; /* Nút to rõ */
+            padding: 10px; 
+        }
         
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
@@ -244,7 +304,7 @@
     <div id="battle-screen">
         <div class="battle-bg bg-grass" id="battle-bg">
             <div id="enemy-stats" class="stat-box">
-                <div class="flex justify-between font-bold text-base">
+                <div class="flex justify-between font-bold text-lg">
                     <span id="enemy-name" class="truncate pr-1">Wild</span>
                     <span id="enemy-lv">Lv5</span>
                 </div>
@@ -255,14 +315,14 @@
             
             <img id="player-sprite" class="pkmn-sprite" src="" alt="Player">
             <div id="player-stats" class="stat-box">
-                <div class="flex justify-between font-bold text-base">
+                <div class="flex justify-between font-bold text-lg">
                     <span id="player-name" class="truncate pr-1">Player</span>
                     <span id="player-lv">Lv5</span>
                 </div>
                 <div class="hp-bar-bg"><div id="player-hp-fill" class="hp-bar-fill w-full"></div></div>
-                <div class="text-right text-xs mt-1" id="player-hp-text">20/20</div>
+                <div class="text-right text-sm mt-1 font-bold" id="player-hp-text">20/20</div>
                 <div id="player-status" class="status-badge" style="display:none;"></div>
-                <div class="text-[10px] mt-1 text-gray-700" id="battle-weather-icon"></div>
+                <div class="text-xs mt-1 text-gray-700" id="battle-weather-icon"></div>
             </div>
         </div>
         <div id="battle-menu">
@@ -273,7 +333,7 @@
                 <button class="btn-retro text-green-600 font-bold" onclick="showSwitchMenu()">PKMN</button>
                 <button class="btn-retro text-gray-600 font-bold" onclick="tryRun()">CHẠY</button>
             </div>
-            <div id="move-btns" style="display: none;" class="grid grid-cols-2 gap-2 p-2 h-full overflow-y-auto"></div>
+            <div id="move-btns" style="display: none;" class="grid grid-cols-2 gap-3 p-3 h-full overflow-y-auto"></div>
         </div>
     </div>
 
@@ -1185,19 +1245,19 @@ function showMoveMenu() {
     let p = state.party[battleState.playerIdx];
     p.moves.forEach((m, idx) => {
         let btn = document.createElement('button'); let mData = MOVES[m.name]; let typeColor = TYPE_COLORS[mData.type] || '#111';
-        btn.className = `btn-retro p-2 flex flex-col justify-center ${m.pp === 0 ? 'opacity-50' : ''}`;
+        btn.className = `btn-retro p-2 flex flex-col justify-center items-center ${m.pp === 0 ? 'opacity-50' : ''}`;
         btn.style.border = `2px solid ${typeColor}`; 
         btn.innerHTML = `
-            <div style="color:${typeColor}; text-shadow: 1px 1px 0 #000;" class="text-lg font-bold w-full text-center truncate">${m.name}</div>
-            <div class="flex justify-between items-center w-full mt-1">
-                <span class="type-badge text-[10px]" style="background-color:${typeColor};">${mData.type}</span>
-                <span class="text-[10px] font-bold text-gray-800 bg-gray-200 px-1 rounded border border-gray-400">PP ${m.pp}/${m.maxPp}</span>
+            <div style="color:${typeColor}; text-shadow: 1px 1px 0 #000;" class="text-xl font-bold w-full text-center truncate">${m.name}</div>
+            <div class="flex justify-between items-center w-full mt-1 px-1">
+                <span class="type-badge text-xs" style="background-color:${typeColor};">${mData.type}</span>
+                <span class="text-xs font-bold text-gray-800 bg-gray-200 px-2 rounded border border-gray-400">PP ${m.pp}/${m.maxPp}</span>
             </div>`;
         btn.onclick = () => { if(m.pp > 0) executeTurn(idx); };
         mb.appendChild(btn);
     });
     let backBtn = document.createElement('button');
-    backBtn.className = 'btn-retro text-base font-bold bg-gray-300 flex items-center justify-center p-2'; 
+    backBtn.className = 'btn-retro text-lg font-bold bg-gray-300 flex items-center justify-center p-2 col-span-2'; 
     backBtn.innerText = 'TRỞ LẠI'; backBtn.onclick = () => { mb.style.display = 'none'; document.getElementById('action-btns').style.display = 'grid'; };
     mb.appendChild(backBtn);
 }
@@ -1779,4 +1839,4 @@ function loadGame() {
 window.onload = init;
 </script>
 </body>
-</html>
+</html>q
