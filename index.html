@@ -1,0 +1,2568 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Poke-Lite RPG: Ultimate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pixel-border: 4px solid #111;
+            --retro-bg: rgba(253, 250, 240, 0.95);
+        }
+        body {
+            font-family: 'VT323', monospace;
+            background-color: #222;
+            color: #111;
+            user-select: none;
+            overflow: hidden;
+            touch-action: none;
+        }
+        /* Retro UI & Borders */
+        .retro-box {
+            background-color: var(--retro-bg);
+            border: var(--pixel-border);
+            box-shadow: inset -2px -2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.5);
+            image-rendering: pixelated;
+        }
+        .btn-retro {
+            background-color: #f8f8f8;
+            border: 2px solid #111;
+            box-shadow: 2px 2px 0 #111;
+            transition: all 0.1s;
+        }
+        .btn-retro:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0 #111;
+        }
+        .btn-retro:disabled {
+            opacity: 0.5;
+            box-shadow: 0px 0px 0 #111;
+            transform: translate(2px, 2px);
+        }
+        
+        /* Map Grid - Full Screen Layout */
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+            background: #78C850;
+            overflow: hidden;
+        }
+        #map-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(14, 1fr);
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            background-color: #78C850;
+            transition: filter 1s ease;
+            border-top: 1px solid rgba(0,0,0,0.2);
+            border-left: 1px solid rgba(0,0,0,0.2);
+        }
+        .cell { 
+            width: 100%; height: 100%; 
+            position: relative; box-sizing: border-box; cursor: pointer; 
+            border-right: 1px solid rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(0,0,0,0.2);
+        }
+        
+        /* Pixelated Map Tiles */
+        .grass { 
+            background-color: #78C850;
+            background-image: 
+                linear-gradient(45deg, #68A040 25%, transparent 25%, transparent 75%, #68A040 75%, #68A040),
+                linear-gradient(45deg, #68A040 25%, transparent 25%, transparent 75%, #68A040 75%, #68A040);
+            background-size: 16px 16px;
+            background-position: 0 0, 8px 8px;
+            image-rendering: pixelated;
+        }
+        .path { 
+            background-color: #E0C068;
+            background-image: radial-gradient(#D0B058 15%, transparent 16%), radial-gradient(#D0B058 15%, transparent 16%);
+            background-size: 16px 16px;
+            background-position: 0 0, 8px 8px;
+        }
+        .tree { 
+            background-color: #228B22; 
+            border-radius: 4px; 
+            box-shadow: inset -4px -4px 0 #005000, inset 4px 4px 0 #32CD32;
+        }
+        
+        /* Facilities & Raid Boss */
+        @keyframes pulseFacility { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes shakeBoss { 0% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } 100% { transform: translateX(0); } }
+        
+        .heal { background-color: #ef4444; border: 3px solid #fff; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 2px 2px 0 #000; z-index: 2; animation: pulseFacility 1.5s infinite; }
+        .gym { background-color: #facc15; border: 3px solid #000; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 2px 2px 0 #000; color: #000; font-size: 1.2rem; z-index: 2; }
+        .airport { background-color: #64748b; border: 3px solid #cbd5e1; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 2px 2px 0 #000; z-index: 2; }
+        .raid-boss { background-color: #000; border: 2px solid red; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 0 10px red; animation: shakeBoss 0.5s infinite; z-index: 2; }
+        
+        /* Pixel Trainer Sprite */
+        #player {
+            position: absolute;
+            width: 10%; 
+            height: calc(100% / 14); 
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="5" y="1" width="6" height="2" fill="%23E60012"/><rect x="4" y="3" width="8" height="1" fill="%23E60012"/><rect x="5" y="4" width="6" height="3" fill="%23FFCC99"/><rect x="4" y="4" width="1" height="3" fill="%23333"/><rect x="11" y="4" width="1" height="3" fill="%23333"/><rect x="6" y="5" width="1" height="1" fill="%23333"/><rect x="9" y="5" width="1" height="1" fill="%23333"/><rect x="4" y="7" width="8" height="4" fill="%23E60012"/><rect x="7" y="7" width="2" height="4" fill="%23FFF"/><rect x="3" y="7" width="1" height="3" fill="%23E60012"/><rect x="12" y="7" width="1" height="3" fill="%23E60012"/><rect x="3" y="10" width="1" height="1" fill="%23FFCC99"/><rect x="12" y="10" width="1" height="1" fill="%23FFCC99"/><rect x="4" y="11" width="3" height="3" fill="%233B4CCA"/><rect x="9" y="11" width="3" height="3" fill="%233B4CCA"/><rect x="3" y="14" width="4" height="2" fill="%23FFF"/><rect x="9" y="14" width="4" height="2" fill="%23FFF"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center bottom;
+            transition: all 0.15s linear;
+            z-index: 10;
+            filter: drop-shadow(0px 2px 0px rgba(0,0,0,0.5));
+            pointer-events: none; 
+            transform: scale(1);
+            transform-origin: bottom center;
+        }
+
+        /* Weather & Flashes */
+        #weather-overlay { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 1s; }
+        .rain { background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 100"><line x1="5" y1="0" x2="5" y2="20" stroke="rgba(255,255,255,0.5)" stroke-width="1"/></svg>'); animation: rainDrop 0.5s linear infinite; opacity: 1 !important;}
+        .snow { background: radial-gradient(circle, white 2px, transparent 3px); background-size: 20px 20px; animation: snowFall 3s linear infinite; opacity: 1 !important;}
+        .night-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0, 0, 30, 0.4); pointer-events: none; z-index: 4; }
+        
+        @keyframes rainDrop { from { background-position: 0 0; } to { background-position: -10px 100px; } }
+        @keyframes snowFall { from { background-position: 0 0; } to { background-position: 20px 100px; } }
+
+        /* Effects */
+        @keyframes flashEncounter { 0%, 40%, 80% { background: black; } 20%, 60%, 100% { background: white; } }
+        .encounter-flash { animation: flashEncounter 1.5s linear forwards; z-index: 100; position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;}
+        
+        @keyframes flashHeal { 0% { background: rgba(34, 197, 94, 0.7); } 100% { background: transparent; } }
+        .heal-flash { animation: flashHeal 0.8s ease-out forwards; z-index: 100; position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;}
+        
+        @keyframes overlordPulse { 0% { filter: drop-shadow(0 0 5px gold); transform: scale(1); } 50% { filter: drop-shadow(0 0 20px red); transform: scale(1.05); } 100% { filter: drop-shadow(0 0 5px gold); transform: scale(1); } }
+        .overlord-aura { animation: overlordPulse 1.5s infinite; }
+        
+        @keyframes omniStarPulse { 0% { filter: drop-shadow(0 0 10px #ff00ff); } 33% { filter: drop-shadow(0 0 10px #00ffff); } 66% { filter: drop-shadow(0 0 10px #ffff00); } 100% { filter: drop-shadow(0 0 10px #ff00ff); } }
+        .omni-star-aura { animation: omniStarPulse 2s infinite; }
+
+        /* UI Elements */
+        #quick-party { position: absolute; top: 5px; right: 5px; z-index: 20; display: flex; flex-direction: column; gap: 4px; }
+        .party-member-card { display: flex; align-items: center; background: rgba(0,0,0,0.6); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); min-width: 110px; }
+        .mini-hp-bg { width: 60px; height: 8px; background: #333; border: 1px solid #000; }
+        .mini-hp-fill { height: 100%; background: #22c55e; transition: width 0.3s; }
+        .pkmn-level-tag { color: #facc15; font-weight: bold; font-size: 1rem; margin-right: 4px; text-shadow: 1px 1px 0 #000; }
+        
+        #region-ribbon { position: absolute; top: 20%; left: -100%; width: 100%; background: rgba(0,0,0,0.85); color: #fff; padding: 15px; text-align: center; font-size: 24px; z-index: 50; border-top: 4px solid gold; border-bottom: 4px solid gold; transition: left 0.4s ease-out; font-weight: bold; text-shadow: 1px 1px 0 #000; }
+        
+        #equipped-title-display { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: gold; padding: 2px 10px; border-radius: 12px; border: 2px solid gold; font-weight: bold; font-size: 0.9rem; z-index: 20; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.5); text-shadow: 1px 1px 0 #000;}
+
+        /* Battle Screen */
+        #battle-screen { display: none; position: absolute; top:0; left:0; width:100%; height:100%; z-index: 30; background: #fff; flex-direction: column; }
+        .battle-bg { flex: 1; position: relative; background-size: cover; background-position: bottom; }
+        .bg-grass { 
+            background: 
+                radial-gradient(ellipse 50% 15% at 25% 85%, #4caf50 0%, transparent 70%),
+                radial-gradient(ellipse 40% 12% at 75% 35%, #4caf50 0%, transparent 70%),
+                linear-gradient(to bottom, #87CEEB 0%, #bbedff 45%, #a8e6a8 55%, #32cd32 100%);
+        }
+        .bg-cave { 
+            background: 
+                radial-gradient(ellipse 50% 15% at 25% 85%, #555555 0%, transparent 70%),
+                radial-gradient(ellipse 40% 12% at 75% 35%, #555555 0%, transparent 70%),
+                linear-gradient(to bottom, #2b2b2b 0%, #555555 45%, #777777 55%, #333333 100%); 
+        }
+        
+        .pkmn-sprite { position: absolute; width: 180px; height: 180px; object-fit: contain; image-rendering: pixelated; }
+        #enemy-sprite { top: 5%; right: 5%; }
+        .boss-sprite { width: 260px !important; height: 260px !important; top: -5% !important; right: 0% !important; filter: drop-shadow(0 0 15px red); }
+        #player-sprite { bottom: 5%; left: 5%; transform: scaleX(-1); }
+        
+        .stat-box { position: absolute; background: var(--retro-bg); border: 3px solid #000; padding: 5px 10px; border-radius: 4px; box-shadow: 3px 3px 0 #000; min-width: 160px; z-index: 10;}
+        #enemy-stats { top: 5%; left: 5%; }
+        #player-stats { bottom: 20%; right: 5%; }
+        
+        .hp-bar-bg { width: 100%; height: 12px; background: #555; border: 2px solid #000; border-radius: 4px; overflow: hidden; margin-top: 5px;}
+        .hp-bar-fill { height: 100%; background: #22c55e; transition: width 0.5s ease, background-color 0.3s; }
+        .hp-low { background: #ef4444 !important; animation: blink 0.5s infinite; }
+        .hp-mid { background: #eab308 !important; }
+        
+        #battle-menu { height: 35%; background: var(--retro-bg); border-top: var(--pixel-border); display: flex; flex-direction: column; z-index: 20;}
+        #dialog-box { padding: 10px; font-size: 1.2rem; flex: 1; border-bottom: 2px solid #ccc; min-height: 60px; line-height: 1.2;}
+        #action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; flex: 1; }
+        
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
+        .shake { animation: shake 0.3s; }
+        
+        /* Modals & Tabs */
+        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 50; align-items: center; justify-content: center; }
+        .modal-content { width: 95%; max-height: 90%; overflow-y: auto; position: relative; }
+        .close-btn { position: absolute; top: -10px; right: -10px; background: red; color: white; border: 3px solid #000; width: 40px; height: 40px; text-align: center; line-height: 34px; cursor: pointer; font-weight: bold; font-size: 24px; z-index: 60; box-shadow: 2px 2px 0 #000;}
+        
+        .type-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: white; text-shadow: 1px 1px 0 #000; border: 1px solid #000; display: inline-block;}
+        .status-badge { background: #555; color: white; padding: 2px 4px; border-radius: 4px; font-size: 0.7rem; margin-left: 5px; border: 1px solid #000;}
+        
+        progress { border: 2px solid #000; height: 14px; width: 100%;}
+        progress::-webkit-progress-bar { background-color: #eee; }
+        progress::-webkit-progress-value { background-color: #3b82f6; }
+
+        .tab-btn { flex: 1; text-align: center; padding: 5px; font-weight: bold; border: 2px solid #000; background: #ddd; cursor: pointer; font-size: 0.9rem;}
+        .tab-btn.active { background: #fff; border-bottom: 2px solid #fff; }
+        .tab-content { display: none; padding: 10px; border: 2px solid #000; background: #fff; margin-top: -2px; overflow-y: auto; flex-direction: column; }
+        .tab-content.active { display: flex; }
+
+        /* Effectiveness Styles */
+        .eff-tag { font-size: 0.75rem; font-weight: bold; padding: 1px 4px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.3); margin-left: 4px; vertical-align: middle; }
+        .eff-x2 { background-color: #ef4444; color: white; } /* Super Effective */
+        .eff-bth { background-color: #22c55e; color: white; } /* Normal */
+        .eff-x05 { background-color: #64748b; color: white; } /* Not very */
+        .eff-x0 { background-color: #111; color: white; } /* Immune */
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="night-overlay" class="night-overlay" style="display: none;"></div>
+    <div id="weather-overlay"></div>
+    <div id="encounter-fx"></div>
+
+    <div id="map-grid"></div>
+    <div id="player"></div>
+
+    <div id="equipped-title-display" style="display: none;"></div>
+    <div id="quick-party"></div>
+    <div id="region-ribbon">Kanto Region</div>
+
+    <div class="absolute top-2 left-2 flex gap-2 z-20">
+        <button onclick="openModal('menu-modal')" class="btn-retro px-3 py-1 text-lg font-bold">MENU</button>
+        <div id="ui-weather" class="retro-box px-3 py-1 text-lg font-bold flex items-center bg-white opacity-90">☀️ Quang đãng</div>
+    </div>
+
+    <!-- UI HIỂN THỊ TIỀN Ở GÓC DƯỚI BÊN TRÁI -->
+    <div id="ui-money-main" class="absolute bottom-2 left-2 retro-box px-3 py-1 text-2xl font-bold bg-white z-20 text-yellow-600">₽0</div>
+
+    <!-- Battle Screen -->
+    <div id="battle-screen">
+        <div class="battle-bg bg-grass" id="battle-bg">
+            <img id="enemy-sprite" class="pkmn-sprite" src="" alt="Enemy">
+            <div id="enemy-stats" class="stat-box">
+                <div class="flex justify-between font-bold text-lg">
+                    <span id="enemy-name">Wild</span>
+                    <span id="enemy-lv">Lv5</span>
+                </div>
+                <div class="hp-bar-bg"><div id="enemy-hp-fill" class="hp-bar-fill w-full"></div></div>
+                <div id="enemy-status" class="status-badge" style="display:none;"></div>
+            </div>
+            <img id="player-sprite" class="pkmn-sprite" src="" alt="Player">
+            <div id="player-stats" class="stat-box">
+                <div class="flex justify-between font-bold text-lg">
+                    <span id="player-name">Player</span>
+                    <span id="player-lv">Lv5</span>
+                </div>
+                <div class="text-right text-sm" id="player-hp-text">20/20</div>
+                <div class="hp-bar-bg"><div id="player-hp-fill" class="hp-bar-fill w-full"></div></div>
+                <div id="player-status" class="status-badge" style="display:none;"></div>
+                <div class="text-xs mt-1" id="battle-weather-icon"></div>
+            </div>
+        </div>
+        <div id="battle-menu">
+            <div id="dialog-box">Một con <span id="wild-name">Pokémon</span> hoang dã xuất hiện!</div>
+            <div id="action-btns">
+                <button class="btn-retro text-2xl py-2 text-red-600 font-bold" onclick="showMoveMenu()">CHIẾN</button>
+                <button class="btn-retro text-2xl py-2 text-blue-600 font-bold" onclick="showBagMenu(true)">TÚI</button>
+                <button class="btn-retro text-2xl py-2 text-green-600 font-bold" onclick="showSwitchMenu()">PKMN</button>
+                <button class="btn-retro text-2xl py-2 text-gray-600 font-bold" onclick="tryRun()">CHẠY</button>
+            </div>
+            <div id="move-btns" style="display: none;" class="grid grid-cols-2 gap-2 p-2 h-full overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- Custom Toast Notifications -->
+    <div id="toast-container" class="absolute top-1/4 left-1/2 transform -translate-x-1/2 z-[100] hidden w-[90%] max-w-sm pointer-events-none transition-opacity duration-300">
+        <div id="toast-msg" class="bg-gray-900 text-white text-center p-3 rounded border-2 border-white font-bold text-xl shadow-[0_0_10px_rgba(0,0,0,0.8)]"></div>
+    </div>
+
+    <!-- Modals -->
+    <div id="menu-modal" class="modal">
+        <div class="retro-box modal-content p-4 flex flex-col gap-3 relative">
+            <div class="close-btn" onclick="closeModal('menu-modal')">X</div>
+            <h2 class="text-center text-3xl font-bold border-b-4 border-black pb-2">MENU CHÍNH</h2>
+            <div class="flex justify-between items-center text-xl mb-2">
+                <span>Tiền: <span id="ui-money" class="text-yellow-600 font-bold">₽0</span></span>
+                <span>Huy hiệu: <span id="ui-badges">0</span>/9</span>
+            </div>
+            <button class="btn-retro py-3 text-xl font-bold" onclick="openPartyModal()">ĐỘI HÌNH & KHO</button>
+            <button class="btn-retro py-3 text-xl font-bold" onclick="showBagMenu(false)">TÚI ĐỒ</button>
+            <button class="btn-retro py-3 text-xl font-bold text-purple-700" onclick="openAchievementsModal()">THÀNH TỰU</button>
+            <button class="btn-retro py-3 text-xl font-bold" onclick="openPokedex()">POKÉDEX</button>
+            <button class="btn-retro py-3 text-xl font-bold" onclick="openShop()">CỬA HÀNG (PokéMart)</button>
+            <button class="btn-retro py-3 text-xl font-bold bg-green-200" onclick="saveGame(true)">LƯU GAME</button>
+        </div>
+    </div>
+
+    <div id="party-modal" class="modal">
+        <div class="retro-box modal-content p-4 relative flex flex-col w-11/12 max-w-md" style="height: 90%;">
+            <div class="close-btn" onclick="closeModal('party-modal')">X</div>
+            <h2 class="text-2xl font-bold mb-2 shrink-0">Đội Hình Hiện Tại</h2>
+            <div id="party-list" class="flex flex-col gap-2 mb-2 shrink-0 overflow-y-auto max-h-[45%] pr-1"></div>
+            
+            <div class="flex justify-between items-end border-t-4 border-black pt-2 mb-2 shrink-0">
+                <h2 class="text-2xl font-bold">Kho (PC)</h2>
+                <span id="pc-count" class="text-sm font-bold text-gray-700 bg-gray-300 px-2 py-0.5 rounded border-2 border-gray-500 mb-1">0 Pkmn</span>
+            </div>
+            <div id="pc-list" class="grid grid-cols-4 gap-2 flex-1 overflow-y-auto bg-blue-200 p-2 border-4 border-blue-900 rounded-lg content-start shadow-[inset_0_4px_6px_rgba(0,0,0,0.4)]"></div>
+        </div>
+    </div>
+
+    <!-- Upgrade / Stat Modal -->
+    <div id="stat-modal" class="modal">
+        <div class="retro-box modal-content p-4 relative w-11/12 max-w-sm flex flex-col h-[95%]">
+            <div class="close-btn" onclick="closeModal('stat-modal')">X</div>
+            <div class="flex gap-4 mb-2">
+                <img id="stat-img" src="" class="w-24 h-24 object-contain bg-white border-2 border-black rounded">
+                <div class="flex-1">
+                    <h2 id="stat-name" class="text-3xl font-bold leading-none">Name</h2>
+                    <div id="stat-types" class="mt-1"></div>
+                    <div class="text-base font-bold mt-1">Lv.<span id="stat-lv">1</span> | L.Break: <span id="stat-lb">0</span>/3</div>
+                    <div class="text-sm text-blue-700 font-bold">Thức tỉnh: +<span id="stat-aw">0</span> <span id="stat-overlord" class="text-red-600 hidden">(OVERLORD)</span></div>
+                    <div class="text-sm text-gray-600 mt-1">EXP: <span id="stat-exp">0/100</span></div>
+                    <button id="btn-sell-pkmn" class="mt-2 bg-red-600 text-white text-sm font-bold px-4 py-1.5 border border-black rounded shadow-[1px_1px_0_#000] active:translate-y-[1px] active:shadow-none">Bán: ₽0</button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex w-full mb-2 shrink-0">
+                <div class="tab-btn active" onclick="switchTab('tab-info')">Chỉ số</div>
+                <div class="tab-btn" onclick="switchTab('tab-train')">Thuốc</div>
+                <div class="tab-btn" onclick="switchTab('tab-skill')">Kỹ năng</div>
+                <div class="tab-btn" onclick="switchTab('tab-awaken')">Thức tỉnh</div>
+            </div>
+
+            <!-- Tab 1: Info -->
+            <div id="tab-info" class="tab-content active flex-1">
+                <div class="mt-2 grid grid-cols-[40px_1fr_40px] gap-2 items-center text-sm font-bold">
+                    <span>HP</span><progress id="bar-hp" value="50" max="255"></progress><span id="val-hp" class="text-right"></span>
+                    <span>ATK</span><progress id="bar-atk" value="50" max="255"></progress><span id="val-atk" class="text-right"></span>
+                    <span>DEF</span><progress id="bar-def" value="50" max="255"></progress><span id="val-def" class="text-right"></span>
+                    <span>SPD</span><progress id="bar-spd" value="50" max="255"></progress><span id="val-spd" class="text-right"></span>
+                </div>
+                
+                <!-- HELD ITEM SLOT -->
+                <div class="mt-3 p-2 bg-blue-50 border-2 border-blue-300 rounded flex justify-between items-center shadow-sm">
+                    <div class="flex items-center">
+                        <span class="text-sm font-bold text-gray-800 mr-2">Trang bị:</span>
+                        <div id="stat-held-item" class="text-sm font-bold text-blue-800 flex items-center">Không có</div>
+                    </div>
+                    <button class="bg-indigo-500 text-white border border-black shadow active:translate-y-[1px] text-xs px-3 py-1.5 rounded font-bold" onclick="showEquipMenu()">Đổi</button>
+                </div>
+
+                <h3 class="mt-3 text-lg font-bold border-b-2 border-black">Chiêu thức</h3>
+                <div id="stat-moves" class="grid grid-cols-2 gap-1 text-xs mt-2"></div>
+            </div>
+
+            <!-- Tab 2: Train -->
+            <div id="tab-train" class="tab-content flex-1">
+                <p class="text-[13px] mb-2 font-bold text-gray-700">Dùng Vitamin tăng vĩnh viễn Chỉ số. Đột phá mở giới hạn Cấp độ (30/60/80).</p>
+                <div id="reset-ticket-ui"></div>
+                <div id="vitamin-list" class="flex flex-col gap-2 mb-3"></div>
+                <div class="border-t-2 border-black pt-3">
+                    <h3 class="font-bold text-xl text-center">Đột Phá (Limit Break)</h3>
+                    <p id="lb-desc" class="text-sm mb-2 text-center text-blue-800 font-bold flex items-center justify-center gap-1">Cần: 5000₽ + 1 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/moon-stone.png" class="w-8 h-8 object-contain"> Đá Nguyên Tố</p>
+                    <button class="btn-retro w-full py-3 bg-yellow-400 font-bold text-xl" onclick="doLimitBreak()">ĐỘT PHÁ NGAY</button>
+                </div>
+            </div>
+
+            <!-- Tab 3: Skills -->
+            <div id="tab-skill" class="tab-content flex-1">
+                <p class="text-[13px] mb-2 font-bold text-gray-700">Dùng Skill Shard (+10% Sức mạnh). PP Max (+5 PP vĩnh viễn).</p>
+                <div class="text-sm mb-2 text-blue-800 font-bold flex justify-center items-center gap-4">
+                    <span class="flex items-center"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/red-shard.png" class="w-8 h-8 mr-1 object-contain"> Shard: <span id="cnt-shard" class="ml-1">0</span></span>
+                    <span class="flex items-center"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/pp-max.png" class="w-8 h-8 mr-1 object-contain"> PP Max: <span id="cnt-pp" class="ml-1">0</span></span>
+                </div>
+                <div id="skill-upgrade-list" class="flex flex-col gap-2"></div>
+            </div>
+
+            <!-- Tab 4: Awaken -->
+            <div id="tab-awaken" class="tab-content flex-1">
+                <p class="text-[13px] mb-2 font-bold text-gray-700">Hiến tế bản sao trong PC để Thức tỉnh (+5% Chỉ số). Cấp 10 hóa <span class="text-red-600">OVERLORD</span> (Crit +20%, Stats x2).</p>
+                <div class="bg-gray-200 p-2 text-center rounded border-2 border-black mb-2 shadow-inner">
+                    Tiến trình: <span class="font-bold text-3xl text-blue-700">+<span id="awaken-lvl">0</span>/10</span>
+                </div>
+                <div id="awaken-materials" class="grid grid-cols-3 gap-2 overflow-y-auto min-h-[120px] p-2 border-2 border-gray-300 rounded bg-gray-50"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Equip Item Modal -->
+    <div id="equip-modal" class="modal">
+        <div class="retro-box modal-content p-4 relative w-11/12 max-w-sm">
+            <div class="close-btn" onclick="closeModal('equip-modal')">X</div>
+            <h2 class="text-2xl font-bold mb-4 text-center border-b-2 border-black pb-2">Chọn Trang Bị</h2>
+            <div id="equip-items-list" class="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+
+    <div id="pokedex-modal" class="modal">
+        <div class="retro-box modal-content p-4 relative">
+            <div class="close-btn" onclick="closeModal('pokedex-modal')">X</div>
+            <h2 class="text-center text-3xl font-bold mb-2">POKÉDEX</h2>
+            <div class="text-center text-xl mb-4">Đã bắt: <span id="dex-count">0</span></div>
+            <div id="dex-container" class="flex flex-col gap-3 overflow-y-auto pr-1" style="max-height: 65vh;"></div>
+        </div>
+    </div>
+    
+    <div id="shop-modal" class="modal">
+        <div class="retro-box modal-content p-4 relative">
+            <div class="close-btn" onclick="closeModal('shop-modal')">X</div>
+            <h2 class="text-center text-3xl font-bold mb-2 text-blue-800">PokéMart</h2>
+            <div class="text-right text-xl mb-2 font-bold text-yellow-600">Tiền: ₽<span id="shop-money"></span></div>
+            
+            <!-- Tabs Phân Mục -->
+            <div class="flex w-full mb-2 shrink-0" id="shop-tabs">
+                <div class="tab-btn active text-[14px] px-1" onclick="openShop('ball')">Bóng</div>
+                <div class="tab-btn text-[14px] px-1" onclick="openShop('heal')">Thuốc</div>
+                <div class="tab-btn text-[14px] px-1" onclick="openShop('upgrade')">Nâng cấp</div>
+                <div class="tab-btn text-[14px] px-1" onclick="openShop('held')">Trang bị</div>
+            </div>
+
+            <!-- List Vật Phẩm -->
+            <div id="shop-items" class="flex flex-col gap-2 max-h-[50vh] overflow-y-auto border-2 border-black bg-white p-2 mt-[-2px]"></div>
+        </div>
+    </div>
+
+    <div id="bag-modal" class="modal">
+        <div class="retro-box modal-content p-4 relative" style="height: 60%; top: 20%;">
+            <div class="close-btn" onclick="closeModal('bag-modal'); document.getElementById('action-btns').style.display='grid';">X</div>
+            <h2 class="text-2xl font-bold mb-4">Túi Đồ</h2>
+            <div id="bag-items" class="flex flex-col gap-2 max-h-[45vh] overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+
+    <!-- Achievements Modal -->
+    <div id="achievements-modal" class="modal">
+        <div class="retro-box modal-content p-4 relative w-11/12 max-w-md h-[85%] flex flex-col">
+            <div class="close-btn" onclick="closeModal('achievements-modal')">X</div>
+            <h2 class="text-center text-3xl font-bold mb-2 text-purple-800 border-b-4 border-black pb-2">THÀNH TỰU</h2>
+            <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-3 mt-2" id="achievements-list"></div>
+        </div>
+    </div>
+
+    <!-- Facility Interactive Modal (Gym, Airport) -->
+    <div id="facility-modal" class="modal">
+        <div class="retro-box modal-content modal-sm p-6 flex flex-col items-center justify-center gap-4 text-center w-11/12 max-w-sm relative">
+            <h2 id="facility-title" class="text-3xl font-bold border-b-2 border-black pb-2 w-full">Tiêu đề</h2>
+            <p id="facility-desc" class="text-xl mb-2">Mô tả</p>
+            <div id="facility-actions" class="flex gap-4 w-full justify-center"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* ==========================================
+   GAME DATA & TYPES
+   ========================================== */
+const TYPE_COLORS = {
+    Normal: '#A8A77A', Fire: '#EE8130', Water: '#6390F0', Electric: '#F7D02C', Grass: '#7AC74C',
+    Ice: '#96D9D6', Fighting: '#C22E28', Poison: '#A33EA1', Ground: '#E2BF65', Flying: '#A98FF3',
+    Psychic: '#F95587', Bug: '#A6B91A', Rock: '#B6A136', Ghost: '#735797', Dragon: '#6F35FC',
+    Dark: '#705848', Steel: '#B7B7CE', Fairy: '#D685AD', Infinity: '#000000'
+};
+
+const TYPE_CHART = {
+    Normal: { Ghost: 0 },
+    Fire: { Grass: 2, Ice: 2, Bug: 2, Steel: 2, Water: 0.5, Rock: 0.5, Fire: 0.5, Dragon: 0.5 },
+    Water: { Fire: 2, Ground: 2, Rock: 2, Water: 0.5, Grass: 0.5, Dragon: 0.5 },
+    Grass: { Water: 2, Ground: 2, Rock: 2, Fire: 0.5, Grass: 0.5, Poison: 0.5, Flying: 0.5, Bug: 0.5, Dragon: 0.5, Steel: 0.5 },
+    Electric: { Water: 2, Flying: 2, Electric: 0.5, Grass: 0.5, Dragon: 0.5, Ground: 0 },
+    Ice: { Grass: 2, Ground: 2, Flying: 2, Dragon: 2, Fire: 0.5, Water: 0.5, Ice: 0.5, Steel: 0.5 },
+    Fighting: { Normal: 2, Ice: 2, Rock: 2, Dark: 2, Steel: 2, Poison: 0.5, Flying: 0.5, Psychic: 0.5, Bug: 0.5, Fairy: 0.5, Ghost: 0 },
+    Poison: { Grass: 2, Fairy: 2, Poison: 0.5, Ground: 0.5, Rock: 0.5, Ghost: 0.5, Steel: 0 },
+    Ground: { Fire: 2, Electric: 2, Poison: 2, Rock: 2, Steel: 2, Grass: 0.5, Bug: 0.5, Flying: 0 },
+    Flying: { Grass: 2, Fighting: 2, Bug: 2, Electric: 0.5, Rock: 0.5, Steel: 0.5 },
+    Psychic: { Fighting: 2, Poison: 2, Psychic: 0.5, Steel: 0.5, Dark: 0 },
+    Bug: { Grass: 2, Psychic: 2, Dark: 2, Fire: 0.5, Fighting: 0.5, Poison: 0.5, Flying: 0.5, Ghost: 0.5, Steel: 0.5, Fairy: 0.5 },
+    Rock: { Fire: 2, Ice: 2, Flying: 2, Bug: 2, Fighting: 0.5, Ground: 0.5, Steel: 0.5 },
+    Ghost: { Psychic: 2, Ghost: 2, Dark: 0.5, Normal: 0 },
+    Dragon: { Dragon: 2, Steel: 0.5, Fairy: 0 },
+    Dark: { Psychic: 2, Ghost: 2, Fighting: 0.5, Dark: 0.5, Fairy: 0.5 },
+    Steel: { Ice: 2, Rock: 2, Fairy: 2, Fire: 0.5, Water: 0.5, Electric: 0.5, Steel: 0.5 },
+    Fairy: { Fighting: 2, Dragon: 2, Dark: 2, Fire: 0.5, Poison: 0.5, Steel: 0.5 },
+    Infinity: { Normal: 2, Fire: 2, Water: 2, Grass: 2, Electric: 2, Ice: 2, Fighting: 2, Poison: 2, Ground: 2, Flying: 2, Psychic: 2, Bug: 2, Rock: 2, Ghost: 2, Dragon: 2, Dark: 2, Steel: 2, Fairy: 2 }
+};
+
+const MOVES = {
+    'Tackle': { type: 'Normal', pwr: 40, acc: 100, pp: 35 },
+    'Quick Attack': { type: 'Normal', pwr: 40, acc: 100, pp: 30, prio: 1 },
+    'Ember': { type: 'Fire', pwr: 45, acc: 100, pp: 25, eff: { status: 'BRN', chance: 10 } },
+    'Flamethrower': { type: 'Fire', pwr: 90, acc: 100, pp: 15, eff: { status: 'BRN', chance: 10 } },
+    'Water Gun': { type: 'Water', pwr: 45, acc: 100, pp: 25 },
+    'Surf': { type: 'Water', pwr: 90, acc: 100, pp: 15 },
+    'Vine Whip': { type: 'Grass', pwr: 45, acc: 100, pp: 25 },
+    'Thunder Shock': { type: 'Electric', pwr: 40, acc: 100, pp: 30, eff: { status: 'PAR', chance: 10 } },
+    'Ice Beam': { type: 'Ice', pwr: 90, acc: 100, pp: 10, eff: { status: 'FRZ', chance: 10 } },
+    'Karate Chop': { type: 'Fighting', pwr: 50, acc: 100, pp: 25, critMod: 2 },
+    'Shadow Ball': { type: 'Ghost', pwr: 80, acc: 100, pp: 15 },
+    'Psychic': { type: 'Psychic', pwr: 90, acc: 100, pp: 15 },
+    'Sludge Bomb': { type: 'Poison', pwr: 90, acc: 100, pp: 10, eff: { status: 'PSN', chance: 30 } },
+    'Bite': { type: 'Dark', pwr: 60, acc: 100, pp: 25, eff: { flinch: true, chance: 30 } },
+    'Dark Pulse': { type: 'Dark', pwr: 80, acc: 100, pp: 15 },
+    'Dragon Claw': { type: 'Dragon', pwr: 80, acc: 100, pp: 15 },
+    'Moonblast': { type: 'Fairy', pwr: 95, acc: 100, pp: 15 },
+    'Flash Cannon': { type: 'Steel', pwr: 80, acc: 100, pp: 10 },
+    'Hypnosis': { type: 'Psychic', pwr: 0, acc: 60, pp: 20, eff: { status: 'SLP', chance: 100 } },
+    'Toxic': { type: 'Poison', pwr: 0, acc: 90, pp: 10, eff: { status: 'TOX', chance: 100 } },
+    
+    // Signatures
+    'Psystrike': { type: 'Psychic', pwr: 100, acc: 100, pp: 10 },
+    'Sacred Fire': { type: 'Fire', pwr: 100, acc: 95, pp: 5, eff: { status: 'BRN', chance: 50 } },
+    'Origin Pulse': { type: 'Water', pwr: 110, acc: 85, pp: 10 },
+    'Precipice Blades': { type: 'Ground', pwr: 120, acc: 85, pp: 10 },
+    'Roar of Time': { type: 'Dragon', pwr: 150, acc: 90, pp: 5 },
+    'Judgment': { type: 'Infinity', pwr: 100, acc: 100, pp: 10 },
+    'Blue Flare': { type: 'Fire', pwr: 130, acc: 85, pp: 5, eff: {status: 'BRN', chance: 20} },
+    'Geomancy': { type: 'Fairy', pwr: 120, acc: 100, pp: 10 },
+    'Sunsteel Strike': { type: 'Steel', pwr: 100, acc: 100, pp: 5 },
+    'Behemoth Blade': { type: 'Steel', pwr: 100, acc: 100, pp: 5 },
+    'Collision Course': { type: 'Fighting', pwr: 100, acc: 100, pp: 5 },
+    'Aeroblast': { type: 'Flying', pwr: 100, acc: 95, pp: 5, critMod: 2 },
+    'Dragon Ascent': { type: 'Flying', pwr: 120, acc: 100, pp: 5 },
+    'Spacial Rend': { type: 'Dragon', pwr: 100, acc: 95, pp: 5, critMod: 2 },
+    'Shadow Force': { type: 'Ghost', pwr: 120, acc: 100, pp: 5 },
+    'Bolt Strike': { type: 'Electric', pwr: 130, acc: 85, pp: 5, eff: { status: 'PAR', chance: 20 } },
+    'Glaciate': { type: 'Ice', pwr: 65, acc: 95, pp: 10 },
+    'Oblivion Wing': { type: 'Flying', pwr: 80, acc: 100, pp: 10 },
+    'Core Enforcer': { type: 'Dragon', pwr: 100, acc: 100, pp: 10 },
+    'Moongeist Beam': { type: 'Ghost', pwr: 100, acc: 100, pp: 5 },
+    'Prismatic Laser': { type: 'Psychic', pwr: 160, acc: 100, pp: 10 },
+    'Behemoth Bash': { type: 'Steel', pwr: 100, acc: 100, pp: 5 },
+    'Eternabeam': { type: 'Dragon', pwr: 160, acc: 90, pp: 5 },
+    'Electro Drift': { type: 'Electric', pwr: 100, acc: 100, pp: 5 }
+};
+
+const POKEDEX = {
+    1: { name: 'Bulbasaur', types: ['Grass', 'Poison'], stats: [45, 49, 49, 45], evos: {16: 2}, moves: ['Tackle', 'Vine Whip'] },
+    2: { name: 'Ivysaur', types: ['Grass', 'Poison'], stats: [60, 62, 63, 60], evos: {32: 3}, moves: ['Tackle', 'Vine Whip', 'Sludge Bomb'] },
+    3: { name: 'Venusaur', types: ['Grass', 'Poison'], stats: [80, 82, 83, 80], evos: {60: 10033}, moves: ['Tackle', 'Vine Whip', 'Sludge Bomb'] },
+    4: { name: 'Charmander', types: ['Fire'], stats: [39, 52, 43, 65], evos: {16: 5}, moves: ['Tackle', 'Ember'] },
+    5: { name: 'Charmeleon', types: ['Fire'], stats: [58, 64, 58, 80], evos: {36: 6}, moves: ['Tackle', 'Ember', 'Flamethrower'] },
+    6: { name: 'Charizard', types: ['Fire', 'Flying'], stats: [78, 84, 78, 100], evos: {60: 10034}, moves: ['Tackle', 'Ember', 'Flamethrower', 'Dragon Claw'] },
+    7: { name: 'Squirtle', types: ['Water'], stats: [44, 48, 65, 43], evos: {16: 8}, moves: ['Tackle', 'Water Gun'] },
+    8: { name: 'Wartortle', types: ['Water'], stats: [59, 63, 80, 58], evos: {36: 9}, moves: ['Tackle', 'Water Gun', 'Surf'] },
+    9: { name: 'Blastoise', types: ['Water'], stats: [79, 83, 100, 78], evos: {60: 10036}, moves: ['Tackle', 'Water Gun', 'Surf', 'Bite'] },
+    16: { name: 'Pidgey', types: ['Normal', 'Flying'], stats: [40, 45, 40, 56], evos: {}, moves: ['Tackle', 'Quick Attack'] },
+    25: { name: 'Pikachu', types: ['Electric'], stats: [35, 55, 40, 90], evos: {}, moves: ['Quick Attack', 'Thunder Shock'] },
+    92: { name: 'Gastly', types: ['Ghost', 'Poison'], stats: [30, 35, 30, 80], evos: {25: 93}, moves: ['Tackle'] },
+    93: { name: 'Haunter', types: ['Ghost', 'Poison'], stats: [45, 50, 45, 95], evos: {36: 94}, moves: ['Shadow Ball', 'Sludge Bomb'] },
+    94: { name: 'Gengar', types: ['Ghost', 'Poison'], stats: [60, 65, 60, 110], evos: {60: 10038}, moves: ['Shadow Ball', 'Sludge Bomb', 'Hypnosis'] },
+    
+    // Eevee Family (Added)
+    133: { name: 'Eevee', types: ['Normal'], stats: [55, 55, 50, 55], evos: {25: 134}, moves: ['Tackle', 'Quick Attack'] },
+    134: { name: 'Vaporeon', types: ['Water'], stats: [130, 65, 60, 65], evos: {}, moves: ['Tackle', 'Water Gun', 'Surf'] },
+    135: { name: 'Jolteon', types: ['Electric'], stats: [65, 65, 60, 130], evos: {}, moves: ['Quick Attack', 'Thunder Shock'] },
+    136: { name: 'Flareon', types: ['Fire'], stats: [65, 130, 60, 65], evos: {}, moves: ['Tackle', 'Ember', 'Flamethrower'] },
+    196: { name: 'Espeon', types: ['Psychic'], stats: [65, 65, 60, 110], evos: {}, moves: ['Tackle', 'Psychic'] },
+    197: { name: 'Umbreon', types: ['Dark'], stats: [95, 65, 110, 65], evos: {}, moves: ['Tackle', 'Bite', 'Dark Pulse'] },
+
+    144: { name: 'Articuno', types: ['Ice', 'Flying'], stats: [90, 85, 100, 85], evos: {}, moves: ['Ice Beam', 'Quick Attack'] },
+    145: { name: 'Zapdos', types: ['Electric', 'Flying'], stats: [90, 90, 85, 100], evos: {}, moves: ['Thunder Shock', 'Quick Attack'] },
+    146: { name: 'Moltres', types: ['Fire', 'Flying'], stats: [90, 100, 90, 90], evos: {}, moves: ['Flamethrower', 'Quick Attack'] },
+    150: { name: 'Mewtwo', types: ['Psychic'], stats: [106, 110, 90, 130], evos: {70: 10044}, moves: ['Psychic', 'Shadow Ball'], sig: 'Psystrike' },
+    151: { name: 'Mew', types: ['Psychic'], stats: [100, 100, 100, 100], evos: {}, moves: ['Psychic', 'Shadow Ball', 'Surf'] },
+    152: { name: 'Chikorita', types: ['Grass'], stats: [45, 49, 65, 45], evos: {16: 153}, moves: ['Tackle', 'Vine Whip'] },
+    153: { name: 'Bayleef', types: ['Grass'], stats: [60, 62, 80, 60], evos: {32: 154}, moves: ['Tackle', 'Vine Whip'] },
+    154: { name: 'Meganium', types: ['Grass'], stats: [80, 82, 100, 80], evos: {}, moves: ['Tackle', 'Vine Whip'] },
+    155: { name: 'Cyndaquil', types: ['Fire'], stats: [39, 52, 43, 65], evos: {14: 156}, moves: ['Tackle', 'Ember'] },
+    156: { name: 'Quilava', types: ['Fire'], stats: [58, 64, 58, 80], evos: {36: 157}, moves: ['Tackle', 'Ember', 'Flamethrower'] },
+    157: { name: 'Typhlosion', types: ['Fire'], stats: [78, 84, 78, 100], evos: {}, moves: ['Tackle', 'Ember', 'Flamethrower'] },
+    158: { name: 'Totodile', types: ['Water'], stats: [50, 65, 64, 43], evos: {18: 159}, moves: ['Tackle', 'Water Gun'] },
+    159: { name: 'Croconaw', types: ['Water'], stats: [65, 80, 80, 58], evos: {30: 160}, moves: ['Tackle', 'Water Gun', 'Bite'] },
+    160: { name: 'Feraligatr', types: ['Water'], stats: [85, 105, 100, 78], evos: {}, moves: ['Surf', 'Bite', 'Dragon Claw'] },
+    249: { name: 'Lugia', types: ['Psychic', 'Flying'], stats: [106, 90, 130, 110], evos: {}, moves: ['Psychic', 'Surf'], sig: 'Aeroblast' },
+    250: { name: 'Ho-Oh', types: ['Fire', 'Flying'], stats: [106, 130, 90, 90], evos: {}, moves: ['Flamethrower', 'Flying'], sig: 'Sacred Fire' },
+    252: { name: 'Treecko', types: ['Grass'], stats: [40, 45, 35, 70], evos: {16: 253}, moves: ['Tackle', 'Vine Whip'] },
+    253: { name: 'Grovyle', types: ['Grass'], stats: [50, 65, 45, 95], evos: {36: 254}, moves: ['Quick Attack', 'Vine Whip'] },
+    254: { name: 'Sceptile', types: ['Grass'], stats: [70, 85, 65, 120], evos: {60: 10065}, moves: ['Dragon Claw', 'Vine Whip'] },
+    255: { name: 'Torchic', types: ['Fire'], stats: [45, 60, 40, 45], evos: {16: 256}, moves: ['Tackle', 'Ember'] },
+    256: { name: 'Combusken', types: ['Fire', 'Fighting'], stats: [60, 85, 60, 55], evos: {36: 257}, moves: ['Ember', 'Karate Chop'] },
+    257: { name: 'Blaziken', types: ['Fire', 'Fighting'], stats: [80, 120, 70, 80], evos: {60: 10050}, moves: ['Flamethrower', 'Karate Chop'] },
+    258: { name: 'Mudkip', types: ['Water'], stats: [50, 70, 50, 40], evos: {16: 259}, moves: ['Tackle', 'Water Gun'] },
+    259: { name: 'Marshtomp', types: ['Water', 'Ground'], stats: [70, 85, 70, 50], evos: {36: 260}, moves: ['Water Gun', 'Tackle'] },
+    260: { name: 'Swampert', types: ['Water', 'Ground'], stats: [100, 110, 90, 60], evos: {60: 10064}, moves: ['Surf', 'Karate Chop'] },
+    382: { name: 'Kyogre', types: ['Water'], stats: [100, 100, 90, 90], evos: {70: 10077}, moves: ['Surf', 'Ice Beam'], sig: 'Origin Pulse' },
+    383: { name: 'Groudon', types: ['Ground'], stats: [100, 150, 140, 90], evos: {70: 10078}, moves: ['Dragon Claw', 'Bite'], sig: 'Precipice Blades' },
+    384: { name: 'Rayquaza', types: ['Dragon', 'Flying'], stats: [105, 150, 90, 95], evos: {70: 10079}, moves: ['Dragon Claw', 'Bite'], sig: 'Dragon Ascent' },
+    390: { name: 'Chimchar', types: ['Fire'], stats: [44, 58, 44, 61], evos: {14: 391}, moves: ['Tackle', 'Ember'] },
+    391: { name: 'Monferno', types: ['Fire', 'Fighting'], stats: [64, 78, 52, 81], evos: {36: 392}, moves: ['Ember', 'Karate Chop'] },
+    392: { name: 'Infernape', types: ['Fire', 'Fighting'], stats: [76, 104, 71, 108], evos: {}, moves: ['Flamethrower', 'Karate Chop'] },
+    393: { name: 'Piplup', types: ['Water'], stats: [53, 51, 53, 40], evos: {16: 394}, moves: ['Tackle', 'Water Gun'] },
+    394: { name: 'Prinplup', types: ['Water'], stats: [64, 66, 68, 50], evos: {36: 395}, moves: ['Tackle', 'Water Gun'] },
+    395: { name: 'Empoleon', types: ['Water', 'Steel'], stats: [84, 86, 88, 60], evos: {}, moves: ['Surf', 'Flash Cannon'] },
+    447: { name: 'Riolu', types: ['Fighting'], stats: [40, 70, 40, 60], evos: {30: 448}, moves: ['Quick Attack', 'Karate Chop'] },
+    448: { name: 'Lucario', types: ['Fighting', 'Steel'], stats: [70, 110, 70, 90], evos: {60: 10059}, moves: ['Karate Chop', 'Flash Cannon'] },
+    483: { name: 'Dialga', types: ['Steel', 'Dragon'], stats: [100, 120, 120, 90], evos: {70: 10245}, moves: ['Flash Cannon', 'Dragon Claw'], sig: 'Roar of Time' },
+    484: { name: 'Palkia', types: ['Water', 'Dragon'], stats: [90, 120, 100, 100], evos: {70: 10246}, moves: ['Surf', 'Dragon Claw'], sig: 'Spacial Rend' },
+    487: { name: 'Giratina', types: ['Ghost', 'Dragon'], stats: [150, 100, 120, 90], evos: {70: 10007}, moves: ['Shadow Ball', 'Dragon Claw'], sig: 'Shadow Force' },
+    493: { name: 'Arceus', types: ['Infinity'], stats: [120, 120, 120, 120], evos: {}, moves: ['Hyper Beam', 'Psychic'], sig: 'Judgment' },
+    495: { name: 'Snivy', types: ['Grass'], stats: [45, 45, 55, 63], evos: {17: 496}, moves: ['Tackle', 'Vine Whip'] },
+    496: { name: 'Servine', types: ['Grass'], stats: [60, 60, 75, 83], evos: {36: 497}, moves: ['Tackle', 'Vine Whip'] },
+    497: { name: 'Serperior', types: ['Grass'], stats: [75, 75, 95, 113], evos: {}, moves: ['Tackle', 'Vine Whip'] },
+    498: { name: 'Tepig', types: ['Fire'], stats: [65, 63, 45, 45], evos: {17: 499}, moves: ['Tackle', 'Ember'] },
+    499: { name: 'Pignite', types: ['Fire', 'Fighting'], stats: [90, 93, 55, 55], evos: {36: 500}, moves: ['Ember', 'Karate Chop'] },
+    500: { name: 'Emboar', types: ['Fire', 'Fighting'], stats: [110, 123, 65, 65], evos: {}, moves: ['Flamethrower', 'Karate Chop'] },
+    501: { name: 'Oshawott', types: ['Water'], stats: [55, 55, 45, 45], evos: {17: 502}, moves: ['Tackle', 'Water Gun'] },
+    502: { name: 'Dewott', types: ['Water'], stats: [75, 75, 60, 60], evos: {36: 503}, moves: ['Tackle', 'Water Gun'] },
+    503: { name: 'Samurott', types: ['Water'], stats: [95, 100, 85, 70], evos: {}, moves: ['Surf', 'Quick Attack'] },
+    643: { name: 'Reshiram', types: ['Dragon', 'Fire'], stats: [100, 120, 100, 90], evos: {}, moves: ['Flamethrower', 'Dragon Claw'], sig: 'Blue Flare' },
+    644: { name: 'Zekrom', types: ['Dragon', 'Electric'], stats: [100, 150, 120, 90], evos: {}, moves: ['Dragon Claw', 'Thunder Shock'], sig: 'Bolt Strike' },
+    646: { name: 'Kyurem', types: ['Dragon', 'Ice'], stats: [125, 130, 90, 95], evos: {}, moves: ['Dragon Claw', 'Ice Beam'], sig: 'Glaciate' },
+    653: { name: 'Fennekin', types: ['Fire'], stats: [40, 45, 40, 60], evos: {16: 654}, moves: ['Tackle', 'Ember'] },
+    654: { name: 'Braixen', types: ['Fire'], stats: [59, 59, 58, 73], evos: {36: 655}, moves: ['Ember', 'Psychic'] },
+    655: { name: 'Delphox', types: ['Fire', 'Psychic'], stats: [75, 69, 72, 104], evos: {}, moves: ['Flamethrower', 'Psychic'] },
+    656: { name: 'Froakie', types: ['Water'], stats: [41, 56, 40, 71], evos: {16: 657}, moves: ['Tackle', 'Water Gun'] },
+    657: { name: 'Frogadier', types: ['Water'], stats: [54, 63, 52, 97], evos: {36: 658}, moves: ['Water Gun', 'Quick Attack'] },
+    658: { name: 'Greninja', types: ['Water', 'Dark'], stats: [72, 95, 67, 122], evos: {}, moves: ['Surf', 'Bite', 'Dark Pulse'] },
+    716: { name: 'Xerneas', types: ['Fairy'], stats: [126, 131, 95, 99], evos: {}, moves: ['Moonblast', 'Psychic'], sig: 'Geomancy' },
+    717: { name: 'Yveltal', types: ['Dark', 'Flying'], stats: [126, 131, 95, 99], evos: {}, moves: ['Bite', 'Quick Attack'], sig: 'Oblivion Wing' },
+    718: { name: 'Zygarde', types: ['Dragon', 'Ground'], stats: [108, 100, 121, 95], evos: {}, moves: ['Dragon Claw', 'Bite'], sig: 'Core Enforcer' },
+    722: { name: 'Rowlet', types: ['Grass', 'Flying'], stats: [68, 55, 55, 42], evos: {17: 723}, moves: ['Tackle', 'Vine Whip'] },
+    723: { name: 'Dartrix', types: ['Grass', 'Flying'], stats: [78, 75, 75, 52], evos: {34: 724}, moves: ['Tackle', 'Vine Whip'] },
+    724: { name: 'Decidueye', types: ['Grass', 'Ghost'], stats: [78, 107, 75, 70], evos: {}, moves: ['Vine Whip', 'Shadow Ball'] },
+    725: { name: 'Litten', types: ['Fire'], stats: [45, 65, 40, 70], evos: {17: 726}, moves: ['Tackle', 'Ember'] },
+    726: { name: 'Torracat', types: ['Fire'], stats: [65, 85, 50, 90], evos: {34: 727}, moves: ['Tackle', 'Ember', 'Bite'] },
+    727: { name: 'Incineroar', types: ['Fire', 'Dark'], stats: [95, 115, 90, 60], evos: {}, moves: ['Flamethrower', 'Bite'] },
+    791: { name: 'Solgaleo', types: ['Psychic', 'Steel'], stats: [137, 137, 107, 97], evos: {}, moves: ['Flash Cannon', 'Psychic'], sig: 'Sunsteel Strike' },
+    792: { name: 'Lunala', types: ['Psychic', 'Ghost'], stats: [137, 113, 89, 97], evos: {}, moves: ['Psychic', 'Shadow Ball'], sig: 'Moongeist Beam' },
+    800: { name: 'Necrozma', types: ['Psychic'], stats: [97, 107, 101, 79], evos: {70: 10157}, moves: ['Psychic', 'Flash Cannon'], sig: 'Prismatic Laser' },
+    813: { name: 'Scorbunny', types: ['Fire'], stats: [50, 71, 40, 69], evos: {16: 814}, moves: ['Tackle', 'Ember'] },
+    814: { name: 'Raboot', types: ['Fire'], stats: [65, 86, 60, 94], evos: {35: 815}, moves: ['Quick Attack', 'Ember'] },
+    815: { name: 'Cinderace', types: ['Fire'], stats: [80, 116, 75, 119], evos: {}, moves: ['Flamethrower', 'Quick Attack'] },
+    816: { name: 'Sobble', types: ['Water'], stats: [50, 40, 40, 70], evos: {16: 817}, moves: ['Tackle', 'Water Gun'] },
+    817: { name: 'Drizzile', types: ['Water'], stats: [65, 60, 55, 90], evos: {35: 818}, moves: ['Tackle', 'Water Gun'] },
+    818: { name: 'Inteleon', types: ['Water'], stats: [70, 85, 65, 120], evos: {}, moves: ['Surf', 'Bite'] },
+    888: { name: 'Zacian', types: ['Fairy', 'Steel'], stats: [92, 130, 115, 138], evos: {70: 10188}, moves: ['Moonblast', 'Flash Cannon'], sig: 'Behemoth Blade' },
+    889: { name: 'Zamazenta', types: ['Fighting', 'Steel'], stats: [92, 130, 145, 128], evos: {70: 10189}, moves: ['Karate Chop', 'Flash Cannon'], sig: 'Behemoth Bash' },
+    890: { name: 'Eternatus', types: ['Poison', 'Dragon'], stats: [140, 85, 95, 130], evos: {70: 10190}, moves: ['Sludge Bomb', 'Dragon Claw'], sig: 'Eternabeam' },
+    906: { name: 'Sprigatito', types: ['Grass'], stats: [40, 61, 54, 65], evos: {16: 907}, moves: ['Tackle', 'Vine Whip'] },
+    907: { name: 'Floragato', types: ['Grass'], stats: [61, 80, 63, 83], evos: {36: 908}, moves: ['Quick Attack', 'Vine Whip'] },
+    908: { name: 'Meowscarada', types: ['Grass', 'Dark'], stats: [76, 110, 70, 123], evos: {}, moves: ['Vine Whip', 'Bite'] },
+    909: { name: 'Fuecoco', types: ['Fire'], stats: [67, 45, 59, 36], evos: {16: 910}, moves: ['Tackle', 'Ember'] },
+    910: { name: 'Crocalor', types: ['Fire'], stats: [81, 55, 78, 49], evos: {36: 911}, moves: ['Tackle', 'Ember'] },
+    911: { name: 'Skeledirge', types: ['Fire', 'Ghost'], stats: [104, 75, 100, 66], evos: {}, moves: ['Flamethrower', 'Shadow Ball'] },
+    1007: { name: 'Koraidon', types: ['Fighting', 'Dragon'], stats: [100, 135, 115, 135], evos: {}, moves: ['Karate Chop', 'Dragon Claw'], sig: 'Collision Course' },
+    1008: { name: 'Miraidon', types: ['Electric', 'Dragon'], stats: [100, 85, 100, 135], evos: {}, moves: ['Thunder Shock', 'Dragon Claw'], sig: 'Electro Drift' },
+
+    // DẠNG TIẾN HÓA MEGA & DẠNG NGUYÊN THỦY/THẦN THOẠI (Tự động tiến hóa ở level nhất định)
+    10033: { name: 'Mega Venusaur', types: ['Grass', 'Poison'], stats: [80, 100, 123, 80], evos: {}, moves: ['Tackle', 'Vine Whip', 'Sludge Bomb'] },
+    10034: { name: 'Mega Charizard X', types: ['Fire', 'Dragon'], stats: [78, 130, 111, 100], evos: {}, moves: ['Tackle', 'Ember', 'Flamethrower', 'Dragon Claw'] },
+    10036: { name: 'Mega Blastoise', types: ['Water'], stats: [79, 103, 120, 78], evos: {}, moves: ['Tackle', 'Water Gun', 'Surf', 'Bite'] },
+    10038: { name: 'Mega Gengar', types: ['Ghost', 'Poison'], stats: [60, 65, 80, 130], evos: {}, moves: ['Shadow Ball', 'Sludge Bomb', 'Hypnosis'] },
+    10044: { name: 'Mega Mewtwo Y', types: ['Psychic'], stats: [106, 150, 90, 140], evos: {}, moves: ['Psychic', 'Shadow Ball'], sig: 'Psystrike' },
+    10065: { name: 'Mega Sceptile', types: ['Grass', 'Dragon'], stats: [70, 110, 75, 145], evos: {}, moves: ['Dragon Claw', 'Vine Whip'] },
+    10050: { name: 'Mega Blaziken', types: ['Fire', 'Fighting'], stats: [80, 160, 80, 100], evos: {}, moves: ['Flamethrower', 'Karate Chop'] },
+    10064: { name: 'Mega Swampert', types: ['Water', 'Ground'], stats: [100, 150, 110, 70], evos: {}, moves: ['Surf', 'Karate Chop'] },
+    10059: { name: 'Mega Lucario', types: ['Fighting', 'Steel'], stats: [70, 145, 88, 112], evos: {}, moves: ['Karate Chop', 'Flash Cannon'] },
+    10077: { name: 'Primal Kyogre', types: ['Water'], stats: [100, 150, 90, 90], evos: {}, moves: ['Surf', 'Ice Beam'], sig: 'Origin Pulse' },
+    10078: { name: 'Primal Groudon', types: ['Ground', 'Fire'], stats: [100, 180, 160, 90], evos: {}, moves: ['Dragon Claw', 'Bite'], sig: 'Precipice Blades' },
+    10079: { name: 'Mega Rayquaza', types: ['Dragon', 'Flying'], stats: [105, 180, 100, 115], evos: {}, moves: ['Dragon Claw', 'Bite'], sig: 'Dragon Ascent' },
+    10245: { name: 'Origin Dialga', types: ['Steel', 'Dragon'], stats: [100, 100, 120, 90], evos: {}, moves: ['Flash Cannon', 'Dragon Claw'], sig: 'Roar of Time' },
+    10246: { name: 'Origin Palkia', types: ['Water', 'Dragon'], stats: [90, 100, 100, 120], evos: {}, moves: ['Surf', 'Dragon Claw'], sig: 'Spacial Rend' },
+    10007: { name: 'Origin Giratina', types: ['Ghost', 'Dragon'], stats: [150, 120, 100, 90], evos: {}, moves: ['Shadow Ball', 'Dragon Claw'], sig: 'Shadow Force' },
+    10157: { name: 'Ultra Necrozma', types: ['Psychic', 'Dragon'], stats: [97, 167, 97, 129], evos: {}, moves: ['Psychic', 'Flash Cannon'], sig: 'Prismatic Laser' },
+    10188: { name: 'Zacian Crowned', types: ['Fairy', 'Steel'], stats: [92, 170, 115, 148], evos: {}, moves: ['Moonblast', 'Flash Cannon'], sig: 'Behemoth Blade' },
+    10189: { name: 'Zamazenta Crowned', types: ['Fighting', 'Steel'], stats: [92, 130, 145, 128], evos: {}, moves: ['Karate Chop', 'Flash Cannon'], sig: 'Behemoth Bash' },
+    10190: { name: 'Eternamax Eternatus', types: ['Poison', 'Dragon'], stats: [255, 115, 250, 130], evos: {}, moves: ['Sludge Bomb', 'Dragon Claw'], sig: 'Eternabeam' }
+};
+
+const REGIONS = ['Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Unova', 'Kalos', 'Alola', 'Galar', 'Paldea'];
+const REGION_LIMITS = [
+    { name: 'Kanto', min: 1, max: 151 },
+    { name: 'Johto', min: 152, max: 251 },
+    { name: 'Hoenn', min: 252, max: 386 },
+    { name: 'Sinnoh', min: 387, max: 493 },
+    { name: 'Unova', min: 494, max: 649 },
+    { name: 'Kalos', min: 650, max: 721 },
+    { name: 'Alola', min: 722, max: 809 },
+    { name: 'Galar', min: 810, max: 898 },
+    { name: 'Paldea', min: 899, max: 1010 },
+    { name: 'Dạng Đặc Biệt (Mega/Thần Thoại)', min: 10000, max: 20000 }
+];
+const LIMIT_CAPS = [30, 60, 80, 100];
+const ITEMS = {
+    'Poké Ball': { price: 200, rate: 1, type: 'ball', icon: 'poke-ball', desc: 'Bóng bắt Pokémon tiêu chuẩn. Tỉ lệ bắt cơ bản.' },
+    'Great Ball': { price: 600, rate: 1.5, type: 'ball', icon: 'great-ball', desc: 'Bóng bắt tầm trung. Tỉ lệ bắt gấp 1.5 lần Poké Ball.' },
+    'Ultra Ball': { price: 1200, rate: 2, type: 'ball', icon: 'ultra-ball', desc: 'Bóng bắt cao cấp. Tỉ lệ bắt gấp đôi Poké Ball.' },
+    'Master Ball': { price: 50000, rate: 100, type: 'ball', icon: 'master-ball', desc: 'Bóng tối thượng. Bắt dính 100% mọi loại Pokémon.' },
+    'Potion': { price: 300, heal: 50, type: 'heal', icon: 'potion', desc: 'Dùng trong trận đấu để hồi phục 50 HP cho Pokémon.' },
+    'Full Heal': { price: 400, type: 'cure', icon: 'full-heal', desc: 'Chữa mọi trạng thái bất lợi (Độc, Bỏng, Tê liệt...).' },
+    'HP Up': { price: 2000, type: 'vitamin', stat: 'hp', val: 10, icon: 'hp-up', desc: 'Vitamin tăng vĩnh viễn giới hạn máu (Max HP).' },
+    'Protein': { price: 2000, type: 'vitamin', stat: 'atk', val: 5, icon: 'protein', desc: 'Vitamin tăng vĩnh viễn sức mạnh Tấn Công (ATK).' },
+    'Iron': { price: 2000, type: 'vitamin', stat: 'def', val: 5, icon: 'iron', desc: 'Vitamin tăng vĩnh viễn sức mạnh Phòng Thủ (DEF).' },
+    'Carbos': { price: 2000, type: 'vitamin', stat: 'spd', val: 5, icon: 'carbos', desc: 'Vitamin tăng vĩnh viễn Tốc Độ (SPD).' },
+    'Elemental Stone': { price: 5000, type: 'stone', icon: 'moon-stone', desc: 'Đá nguyên tố bí ẩn. Dùng để Đột Phá giới hạn cấp độ.' },
+    'Skill Shard': { price: 3000, type: 'shard', icon: 'red-shard', desc: 'Mảnh kỹ năng. Dùng để nâng cấp uy lực của chiêu thức.' },
+    'PP Max': { price: 5000, type: 'ppmax', icon: 'pp-max', desc: 'Thuốc đặc biệt giúp tăng vĩnh viễn tối đa số lần xuất chiêu (PP).' },
+    
+    // New Feature Items
+    'Shiny Charm': { price: 200000, type: 'key', icon: 'shiny-charm', desc: 'Vật phẩm quý hiếm. Tự động tăng vĩnh viễn tỉ lệ gặp Pokémon Shiny từ 1% lên 5%.' },
+    'Boss Lure': { price: 15000, type: 'map_use', icon: 'honey', desc: 'Mồi Nhử Boss. Sử dụng ngoài trận đấu để gọi ngay lập tức 1 Raid Boss Khổng lồ.' },
+    'Reset Ticket': { price: 20000, type: 'upgrade', icon: 'mystic-ticket', desc: 'Vé Tẩy Điểm. Đặt lại toàn bộ điểm Vitamin đã dùng, trả về chỉ số gốc.' },
+
+    // Held Items
+    'Amulet Coin': { price: 15000, type: 'held', icon: 'amulet-coin', desc: 'Trang bị: Nếu Pokémon có mặt trên sân, x2 Tiền thưởng sau khi thắng.' },
+    'Lucky Egg': { price: 20000, type: 'held', icon: 'lucky-egg', desc: 'Trang bị: Giúp Pokémon cầm nó tăng thêm 50% EXP nhận được.' },
+    'EXP. Share': { price: 50000, type: 'held', icon: 'exp-share', desc: 'Trang bị: Dù nằm trong PC hay đội hình không ra sân, vẫn nhận 50% EXP.' },
+    'Leftovers': { price: 30000, type: 'held', icon: 'leftovers', desc: 'Trang bị: Hồi phục 1/16 Max HP vào mỗi cuối hiệp đấu.' },
+    'Shell Bell': { price: 25000, type: 'held', icon: 'shell-bell', desc: 'Trang bị: Hồi phục lượng máu bằng 1/8 sát thương gây ra cho địch.' },
+    'Rocky Helmet': { price: 25000, type: 'held', icon: 'rocky-helmet', desc: 'Trang bị: Kẻ địch tấn công vào sẽ bị phản lại sát thương bằng 1/8 Max HP.' },
+    'Focus Sash': { price: 40000, type: 'held', icon: 'focus-sash', desc: 'Trang bị: Nếu đầy máu mà dính đòn chí tử, sống sót với 1 HP.' },
+    'Life Orb': { price: 35000, type: 'held', icon: 'life-orb', desc: 'Trang bị: Tăng 30% sát thương nhưng mất 10% Max HP mỗi lần đánh trúng.' },
+    'Quick Claw': { price: 15000, type: 'held', icon: 'quick-claw', desc: 'Trang bị: 20% cơ hội được ra chiêu trước bất chấp tốc độ.' },
+    'Expert Belt': { price: 20000, type: 'held', icon: 'expert-belt', desc: 'Trang bị: Tăng 20% sát thương nếu xuất chiêu Siêu hiệu quả.' },
+    'Choice Scarf': { price: 30000, type: 'held', icon: 'choice-scarf', desc: 'Trang bị: Tăng 50% Tốc độ (SPD) cho Pokémon.' }
+};
+
+const ACHIEVEMENTS = {
+    'A1': { name: 'Nhà Sưu Tập Tập Sự', desc: 'Bắt được 10 loài Pokémon khác nhau.', buffDesc: '+5% Tỉ lệ bắt thành công.', type: 'collection' },
+    'A2': { name: 'Chuyên Gia Pokedex', desc: 'Bắt được 50 loài Pokémon khác nhau.', buffDesc: '+5% HP cho toàn đội hình.', type: 'collection' },
+    'A3': { name: 'Bậc Thầy Pokedex', desc: 'Bắt được 100 loài Pokémon khác nhau.', buffDesc: '+10% HP cho toàn đội hình.', type: 'collection' },
+    'A4': { name: 'Thợ Săn Ánh Sáng', desc: 'Sở hữu 1 Pokémon Shiny ✨.', buffDesc: '+1% Tỉ lệ gặp Pokémon Shiny.', type: 'collection' },
+    'A5': { name: 'Kẻ Ám Ảnh Màu Sắc', desc: 'Sở hữu 10 Pokémon Shiny ✨.', buffDesc: '+5% Tỉ lệ gặp Pokémon Shiny.', type: 'collection' },
+    'A6': { name: 'Người Bạn Của Eevee', desc: 'Sở hữu đủ 5 dạng tiến hóa của Eevee.', buffDesc: '+10% Tốc độ (SPD) cho Pokémon hệ Normal.', type: 'collection' },
+    'A7': { name: 'Kẻ Chinh Phục', desc: 'Thắng 50 trận đấu hoang dã.', buffDesc: '+5% Tấn công (ATK).', type: 'combat' },
+    'A8': { name: 'Chiến Binh Bất Bại', desc: 'Thắng 200 trận đấu hoang dã.', buffDesc: '+10% ATK & +10% SPD.', type: 'combat' },
+    'A9': { name: 'Bức Tường Thép', desc: 'Thắng một trận đấu Gym Leader mà không Pokémon nào gục ngã.', buffDesc: '+15% Phòng thủ (DEF).', type: 'combat' },
+    'A10': { name: 'Kẻ Hủy Diệt Raid', desc: 'Đánh bại 10 Raid Boss Khổng Lồ.', buffDesc: '+15% Sát thương gây ra lên Raid Boss.', type: 'combat' },
+    'A11': { name: 'Thần Chết Raid', desc: 'Đánh bại 50 Raid Boss Khổng Lồ.', buffDesc: '+50% Sát thương gây ra lên Raid Boss.', type: 'combat' },
+    'A12': { name: 'Bậc Thầy Khắc Hệ', desc: 'Gây ra 100 đòn đánh Vô cùng hiệu quả.', buffDesc: '+10% Sát thương khi đánh vào điểm yếu.', type: 'combat' },
+    'A13': { name: 'Kẻ Cuồng Chiến', desc: 'Gây ra một đòn đánh trên 1000 sát thương.', buffDesc: '+10% Tỉ lệ đòn đánh Chí mạng.', type: 'combat' },
+    'A14': { name: 'Kẻ Phá Nhà Thi Đấu', desc: 'Đánh bại 3 Gym Leaders đầu tiên.', buffDesc: '+5% Tất cả chỉ số.', type: 'explore' },
+    'A15': { name: 'Nhà Vô Địch Vùng', desc: 'Đánh bại toàn bộ 9 Gym Leaders.', buffDesc: '+10% Tất cả chỉ số.', type: 'explore' },
+    'A16': { name: 'Chân Chạy Marathon', desc: 'Di chuyển đủ 5,000 ô trên bản đồ.', buffDesc: '+20 điểm Tốc độ (SPD) cơ bản cho mọi Pokémon.', type: 'explore' },
+    'A17': { name: 'Kẻ Lữ Hành', desc: 'Ghé thăm đủ 9 vùng đất của thế giới.', buffDesc: 'Giảm 20% tỉ lệ gặp quái hoang dã.', type: 'explore' },
+    'A18': { name: 'Chúa Tể Sân Bay', desc: 'Sử dụng sân bay 20 lần.', buffDesc: '+5% SPD.', type: 'explore' },
+    'A19': { name: 'Chuyên Gia Dinh Dưỡng', desc: 'Sử dụng tổng cộng 100 lọ Vitamin.', buffDesc: 'Hiệu quả của Vitamin tăng thêm 20%.', type: 'upgrade' },
+    'A20': { name: 'Kẻ Phá Vỡ Giới Hạn', desc: 'Đột phá (Limit Break) max (3 lần) cho 5 Pokémon.', buffDesc: '+5% DEF cho toàn đội hình.', type: 'upgrade' },
+    'A21': { name: 'Thợ Rèn Kỹ Năng', desc: 'Nâng cấp 4 chiêu thức của 1 Pokémon lên Lv.5.', buffDesc: '+10% Sát thương chiêu thức.', type: 'upgrade' },
+    'A22': { name: 'Người Thức Tỉnh', desc: 'Thức tỉnh 1 Pokémon đạt mức +5.', buffDesc: '+5% Sát thương tổng.', type: 'upgrade' },
+    'A23': { name: 'Kẻ Chinh Phục Tối Thượng', desc: 'Sở hữu ít nhất 1 Pokémon dạng Overlord (+10).', buffDesc: '+20% Sát thương cho Pokémon hệ Infinity.', type: 'upgrade' },
+    'A24': { name: 'Đấng Sáng Thế', desc: 'Sở hữu Arceus ở dạng Overlord (+10).', buffDesc: '+20% Tất cả chỉ số.', type: 'upgrade' },
+    'A25': { name: 'Triệu Phú Paldea', desc: 'Sở hữu trên 1,000,000 ₽.', buffDesc: 'Giảm 15% giá tất cả vật phẩm trong PokéMart.', type: 'economy' },
+    'A26': { name: 'Thợ Săn Kho Báu', desc: 'Nhặt được 50 vật phẩm rơi ra từ Boss.', buffDesc: '+10% Tỉ lệ rơi vật phẩm quý khi đánh Boss.', type: 'economy' },
+    'A27': { name: 'Tay Chơi Bóng', desc: 'Sử dụng hơn 500 quả Poké Ball các loại.', buffDesc: '+10% Tỉ lệ bắt nếu dùng Poké Ball thường.', type: 'economy' },
+    'A28': { name: 'Kẻ Lì Lợm', desc: 'Pokémon sống sót qua đòn đánh chí tử 5 lần.', buffDesc: '+10% HP.', type: 'secret' },
+    'A29': { name: 'Bậc Thầy Một Hệ', desc: 'Có đủ 6 Pokémon cùng 1 hệ trong đội hình.', buffDesc: '+15% Sát thương cho hệ đó.', type: 'secret' },
+    'A30': { name: 'Ngôi Sao Toàn Năng', desc: 'Sở hữu Pokémon Level 100, dùng 40 Vitamin, 4 Skill Lv5, Thức tỉnh +10.', buffDesc: 'Tỏa hào quang rực rỡ và +15% All Stats.', type: 'secret' },
+};
+
+/* ==========================================
+   GAME STATE
+   ========================================== */
+let state = {
+    player: { x: 4, y: 13 },
+    regionIdx: 0,
+    mapIdx: 0,
+    party: [], 
+    pc: [],    
+    inventory: { 'Poké Ball': 5, 'Potion': 2 },
+    money: 1000,
+    badges: 0,
+    pokedex: [],
+    
+    // Tracking for Achievements
+    stats: {
+        wildWins: 0, gymWins: 0, bossKills: 0, seHits: 0, maxDmg: 0,
+        steps: 0, visitedRegions: [0], airportUses: 0, vitaminsUsed: 0,
+        bossDrops: 0, ballsUsed: 0, survivals: 0
+    },
+    unlockedTitles: [],
+    equippedTitle: null
+};
+
+let currentMapData = []; 
+let inBattle = false;
+let battleState = null;
+let ribbonTimeout = null;
+let toastTimer = null;
+let isMoving = false;
+let moveTarget = null;
+let raidActive = false;
+let curStatPkmn = null;
+
+function getSpriteUrl(id, shiny=false) {
+    let baseUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
+    if(shiny) baseUrl += '/shiny';
+    return `${baseUrl}/${id}.png`;
+}
+
+function getItemSpriteUrl(iconName) {
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${iconName}.png`;
+}
+
+/* ==========================================
+   TOAST NOTIFICATION (Replaces Alert)
+   ========================================== */
+function showToast(msg) {
+    const tc = document.getElementById('toast-container');
+    document.getElementById('toast-msg').innerText = msg;
+    tc.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => tc.classList.add('hidden'), 2500);
+}
+
+/* ==========================================
+   INIT & MAP GENERATION
+   ========================================== */
+function init() {
+    loadGame();
+    if(state.party.length === 0) state.party.push(createPokemon(25, 5));
+    generateMap();
+    renderPlayer();
+    updateUI();
+    setInterval(updateTimeAndWeather, 60000);
+    updateTimeAndWeather();
+    setInterval(spawnRaidBoss, 30000);
+    
+    document.addEventListener('keydown', (e) => {
+        if(inBattle || document.querySelectorAll('.modal[style*="display: flex"]').length > 0) return;
+        if(e.key === 'ArrowUp' || e.key === 'w') movePlayer(0, -1);
+        if(e.key === 'ArrowDown' || e.key === 's') movePlayer(0, 1);
+        if(e.key === 'ArrowLeft' || e.key === 'a') movePlayer(-1, 0);
+        if(e.key === 'ArrowRight' || e.key === 'd') movePlayer(1, 0);
+        if(e.key === 'Enter' || e.key === ' ') interact();
+    });
+}
+
+function spawnRaidBoss() {
+    if (state.mapIdx === 2 && !raidActive && !inBattle) {
+        let emptyCells = [];
+        for(let y=2; y<12; y++) {
+            for(let x=1; x<9; x++) {
+                if(currentMapData[y][x] === 0 || currentMapData[y][x] === 1) emptyCells.push({x, y});
+            }
+        }
+        if(emptyCells.length > 0) {
+            let spot = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            currentMapData[spot.y][spot.x] = 7;
+            let cell = document.getElementById('map-grid').children[spot.y * 10 + spot.x];
+            cell.className = 'cell raid-boss';
+            cell.innerText = '💀';
+            raidActive = true;
+            showToast("Cảnh báo: Raid Boss đã xuất hiện trên bản đồ!");
+        }
+    }
+}
+
+function generateMap() {
+    const grid = document.getElementById('map-grid');
+    grid.innerHTML = '';
+    currentMapData = [];
+    raidActive = false;
+    
+    for(let y = 0; y < 14; y++) {
+        let row = [];
+        for(let x = 0; x < 10; x++) {
+            let type = 0; 
+            
+            if(x===0 || x===9 || y===0 || y===13) type = 2; 
+            else if(x >= 4 && x <= 5) type = 1; 
+            else if(y === 1 || y === 12) type = 0; 
+            else if(Math.random() < 0.15) type = 2; 
+            
+            row.push(type);
+        }
+        currentMapData.push(row);
+    }
+    
+    currentMapData[13][4] = 1; currentMapData[13][5] = 1;
+    currentMapData[0][4] = 1; currentMapData[0][5] = 1;
+    
+    currentMapData[12][2] = 3;
+    currentMapData[12][3] = 0; currentMapData[11][2] = 0; 
+    
+    if(state.mapIdx === 2) {
+        currentMapData[2][2] = 5;
+        currentMapData[2][7] = 6; 
+        currentMapData[2][3] = 0; currentMapData[3][2] = 0;
+        currentMapData[2][6] = 0; currentMapData[3][7] = 0;
+    }
+
+    for(let y=0; y<14; y++) {
+        for(let x=0; x<10; x++) {
+            let div = document.createElement('div');
+            div.className = 'cell';
+            let t = currentMapData[y][x];
+            if(t===0) div.classList.add('grass');
+            if(t===1) div.classList.add('path');
+            if(t===2) div.classList.add('tree');
+            if(t===3) { div.classList.add('heal'); div.innerText = '🏥'; }
+            if(t===5) { div.classList.add('gym'); div.innerText = 'GYM'; }
+            if(t===6) { div.classList.add('airport'); div.innerText = '✈️'; }
+            
+            div.onclick = () => handleCellClick(x, y);
+            grid.appendChild(div);
+        }
+    }
+    showRibbon(`${REGIONS[state.regionIdx]} - Route ${state.mapIdx + 1}`);
+}
+
+function showRibbon(text) {
+    const r = document.getElementById('region-ribbon');
+    r.innerText = text;
+    r.style.left = '0';
+    clearTimeout(ribbonTimeout);
+    ribbonTimeout = setTimeout(() => { r.style.left = '-100%'; }, 2500);
+}
+
+function updateTimeAndWeather() {
+    const h = new Date().getHours();
+    const isNight = h < 6 || h > 18;
+    document.getElementById('night-overlay').style.display = isNight ? 'block' : 'none';
+    
+    const wx = document.getElementById('weather-overlay');
+    wx.className = '';
+    let weatherText = '☀️ Quang đãng';
+
+    if(state.regionIdx === 2 && Math.random() < 0.5) {
+        wx.className = 'rain';
+        weatherText = '🌧️ Trời mưa';
+    } else if(state.regionIdx === 3 && Math.random() < 0.5) {
+        wx.className = 'snow';
+        weatherText = '❄️ Tuyết rơi';
+    } else if (isNight) {
+        weatherText = '🌙 Trời tối';
+    }
+
+    const weatherUi = document.getElementById('ui-weather');
+    if(weatherUi) weatherUi.innerText = weatherText;
+}
+
+/* ==========================================
+   TAP-TO-MOVE TỪNG BƯỚC
+   ========================================== */
+
+function handleCellClick(nx, ny) {
+    if(inBattle || document.querySelectorAll('.modal[style*="display: flex"]').length > 0) return;
+
+    if (!isMoving && ny === 0 && state.player.y === 0 && nx === state.player.x) {
+        transitionMap(-1);
+        return;
+    }
+    if (!isMoving && ny === 13 && state.player.y === 13 && nx === state.player.x) {
+        transitionMap(1);
+        return;
+    }
+
+    moveTarget = { x: nx, y: ny };
+    if (!isMoving) startWalking();
+}
+
+function movePlayer(dx, dy) {
+    if (inBattle || document.querySelectorAll('.modal[style*="display: flex"]').length > 0) return;
+    
+    let nx = state.player.x + dx;
+    let ny = state.player.y + dy;
+
+    if (ny < 0) { transitionMap(-1); return; }
+    if (ny > 13) { transitionMap(1); return; }
+    if (nx < 0 || nx > 9) return;
+
+    moveTarget = { x: nx, y: ny };
+    if (!isMoving) startWalking();
+}
+
+async function startWalking() {
+    isMoving = true;
+
+    while (moveTarget && (state.player.x !== moveTarget.x || state.player.y !== moveTarget.y)) {
+        let dx = 0;
+        let dy = 0;
+
+        if (state.player.x !== moveTarget.x) {
+            dx = state.player.x < moveTarget.x ? 1 : -1;
+        } else if (state.player.y !== moveTarget.y) {
+            dy = state.player.y < moveTarget.y ? 1 : -1;
+        }
+
+        let nx = state.player.x + dx;
+        let ny = state.player.y + dy;
+
+        if (nx < 0 || nx > 9 || ny < 0 || ny > 13) {
+            moveTarget = null;
+            break;
+        }
+
+        state.player.x = nx;
+        state.player.y = ny;
+        renderPlayer();
+        
+        state.stats.steps++;
+        checkAchievements();
+
+        await wait(150);
+
+        let targetCell = currentMapData[state.player.y][state.player.x];
+
+        if(targetCell === 3 || targetCell === 5 || targetCell === 6) {
+            triggerFacility(targetCell);
+            moveTarget = null;
+            break; 
+        }
+
+        if(targetCell === 7) {
+            startBattle(false, true);
+            moveTarget = null;
+            break;
+        }
+
+        let encounterRate = 0.10;
+        if(state.equippedTitle === 'Kẻ Lữ Hành') encounterRate = 0.08;
+
+        if((targetCell === 0 || targetCell === 2) && Math.random() < encounterRate) {
+            startBattle(false, false);
+            moveTarget = null;
+            break;
+        }
+    }
+    
+    isMoving = false;
+}
+
+function transitionMap(dir) {
+    moveTarget = null;
+    if (dir === -1) {
+        if (state.mapIdx < 2) {
+            state.mapIdx++;
+            state.player.y = 13;
+            generateMap();
+            renderPlayer();
+        } else showRibbon("Đã đến cuối con đường! Hãy dùng Sân Bay.");
+    } else if (dir === 1) {
+        if (state.mapIdx > 0) {
+            state.mapIdx--;
+            state.player.y = 0;
+            generateMap();
+            renderPlayer();
+        } else showRibbon("Đây là điểm bắt đầu. Không thể quay lại nữa!");
+    }
+}
+
+function renderPlayer() {
+    const p = document.getElementById('player');
+    p.style.left = (state.player.x * 10) + '%';
+    p.style.top = (state.player.y * (100 / 14)) + '%';
+    
+    if (state.equippedTitle === 'Ngôi Sao Toàn Năng') {
+        p.classList.add('omni-star-aura');
+    } else {
+        p.classList.remove('omni-star-aura');
+    }
+}
+
+function showFacilityModal(title, desc, confirmText, confirmAction) {
+    document.getElementById('facility-title').innerText = title;
+    document.getElementById('facility-desc').innerText = desc;
+    const actions = document.getElementById('facility-actions');
+    actions.innerHTML = '';
+
+    if (confirmAction) {
+        let btnYes = document.createElement('button');
+        btnYes.className = 'btn-retro px-6 py-2 text-xl font-bold text-green-700 bg-green-100 border-2 border-black';
+        btnYes.innerText = confirmText;
+        btnYes.onclick = () => { confirmAction(); closeModal('facility-modal'); };
+        actions.appendChild(btnYes);
+    }
+
+    let btnNo = document.createElement('button');
+    btnNo.className = 'btn-retro px-6 py-2 text-xl font-bold text-gray-700 bg-gray-200 border-2 border-black';
+    btnNo.innerText = confirmAction ? 'Hủy' : 'Đóng';
+    btnNo.onclick = () => closeModal('facility-modal');
+    actions.appendChild(btnNo);
+
+    openModal('facility-modal');
+}
+
+function triggerFacility(cellType) {
+    if(cellType === 3) {
+        healParty();
+    }
+    else if(cellType === 5) {
+        if (state.badges <= state.regionIdx) {
+            showFacilityModal("🏛️ Nhà Thi Đấu", "Bạn đã sẵn sàng thách đấu với Thủ Lĩnh (Gym Leader) vùng này chưa?", "Chiến Đấu", () => startBattle(true, false));
+        } else {
+            showFacilityModal("🏛️ Nhà Thi Đấu", "Bạn đã đánh bại Thủ lĩnh ở vùng này rồi. Hãy tiến đến vùng đất tiếp theo!", null, null);
+        }
+    }
+    else if(cellType === 6) {
+        if(state.badges > state.regionIdx) {
+            showFacilityModal("✈️ Sân Bay", "Bạn có muốn lên chuyến bay để đến vùng đất tiếp theo không?", "Khởi Hành", () => {
+                state.regionIdx = (state.regionIdx + 1) % 9;
+                state.mapIdx = 0; 
+                state.stats.airportUses++;
+                if (!state.stats.visitedRegions.includes(state.regionIdx)) state.stats.visitedRegions.push(state.regionIdx);
+                checkAchievements();
+                generateMap();
+                state.player.x = 4;
+                state.player.y = 12;
+                renderPlayer();
+                updateTimeAndWeather();
+            });
+        } else {
+            showFacilityModal("✈️ Sân Bay", "Bạn cần đánh bại Gym Leader và lấy Huy hiệu của vùng này trước khi được phép bay!", null, null);
+        }
+    }
+}
+
+function interact() {
+    if (isMoving) return;
+    let currentCell = currentMapData[state.player.y][state.player.x];
+    if(currentCell === 3 || currentCell === 5 || currentCell === 6) {
+        triggerFacility(currentCell);
+        return;
+    }
+    if (currentCell === 7) {
+        startBattle(false, true);
+        return;
+    }
+    
+    const facing = [[0,-1], [0,1], [-1,0], [1,0]];
+    for(let dir of facing) {
+        let nx = state.player.x + dir[0];
+        let ny = state.player.y + dir[1];
+        if(nx>=0 && nx<=9 && ny>=0 && ny<=13) {
+            let cell = currentMapData[ny][nx];
+            if(cell === 3 || cell === 5 || cell === 6) {
+                triggerFacility(cell);
+                return;
+            }
+            if (cell === 7) {
+                startBattle(false, true);
+                return;
+            }
+        }
+    }
+}
+
+function healParty() {
+    state.party.forEach(p => { 
+        p.hp = p.maxHp; 
+        p.status = null; 
+        p.moves.forEach(m => { m.pp = m.maxPp; });
+    });
+    updateUI();
+    
+    const fx = document.getElementById('encounter-fx');
+    fx.className = 'heal-flash';
+    setTimeout(() => fx.className = '', 800);
+    
+    showRibbon("🏥 Đã hồi phục toàn bộ HP & PP!");
+}
+
+/* ==========================================
+   POKEMON ENTITY LOGIC
+   ========================================== */
+function calcStats(p) {
+    let lv = p.level;
+    let lbMult = 1 + (p.limitBreak * 0.15);
+    let awMult = 1 + (p.awaken * 0.05);
+    if (p.awaken >= 10) awMult = 2.0;
+
+    let hpBase = p.baseStats[0], atkBase = p.baseStats[1], defBase = p.baseStats[2], spdBase = p.baseStats[3];
+
+    let t = state.equippedTitle;
+    let allStatMult = 1;
+    if(t === 'Kẻ Phá Nhà Thi Đấu') allStatMult += 0.05;
+    if(t === 'Nhà Vô Địch Vùng') allStatMult += 0.10;
+    if(t === 'Đấng Sáng Thế') allStatMult += 0.20;
+    if(t === 'Ngôi Sao Toàn Năng') allStatMult += 0.15;
+
+    let hpMult = 1 + (t === 'Chuyên Gia Pokedex' ? 0.05 : t === 'Bậc Thầy Pokedex' ? 0.10 : t === 'Kẻ Lì Lợm' ? 0.10 : 0);
+    let atkMult = 1 + (t === 'Kẻ Chinh Phục' ? 0.05 : t === 'Chiến Binh Bất Bại' ? 0.10 : 0);
+    let defMult = 1 + (t === 'Bức Tường Thép' ? 0.15 : t === 'Kẻ Phá Vỡ Giới Hạn' ? 0.05 : 0);
+    let spdMult = 1 + (t === 'Chiến Binh Bất Bại' ? 0.10 : t === 'Chúa Tể Sân Bay' ? 0.05 : (t === 'Người Bạn Của Eevee' && p.types.includes('Normal') ? 0.10 : 0));
+
+    let flatSpd = (t === 'Chân Chạy Marathon') ? 20 : 0;
+
+    p.maxHp = Math.floor( (Math.floor(hpBase * 2 * lv / 100) + lv + 10) * lbMult * awMult * hpMult * allStatMult );
+    p.atk = Math.floor( (Math.floor(atkBase * 2 * lv / 100) + 5) * lbMult * awMult * atkMult * allStatMult );
+    p.def = Math.floor( (Math.floor(defBase * 2 * lv / 100) + 5) * lbMult * awMult * defMult * allStatMult );
+    p.spd = Math.floor( (Math.floor(spdBase * 2 * lv / 100) + 5 + flatSpd) * lbMult * awMult * spdMult * allStatMult );
+
+    p.hp = Math.min(p.hp, p.maxHp);
+}
+
+function updateAllPartyStats() {
+    state.party.concat(state.pc).forEach(calcStats);
+    updateUI();
+}
+
+function createPokemon(id, level, isShiny=false) {
+    const data = POKEDEX[id];
+    let moves = [];
+    let availableMoves = [...data.moves];
+    while(moves.length < 4 && availableMoves.length > 0) {
+        let idx = Math.floor(Math.random() * availableMoves.length);
+        let m = availableMoves.splice(idx, 1)[0];
+        moves.push({ name: m, pp: MOVES[m].pp, maxPp: MOVES[m].pp, lv: 1 });
+    }
+
+    // Shiny Charm Effect
+    let shinyRate = (state.inventory['Shiny Charm'] > 0) ? 0.05 : 0.01;
+    if(state.equippedTitle === 'Thợ Săn Ánh Sáng') shinyRate += 0.01;
+    if(state.equippedTitle === 'Kẻ Ám Ảnh Màu Sắc') shinyRate += 0.05;
+
+    let p = {
+        id: id, uid: Date.now() + Math.random(),
+        name: data.name, level: level, exp: 0, shiny: isShiny || Math.random() < shinyRate,
+        baseStats: [...data.stats],
+        hp: 1, maxHp: 1, atk: 1, def: 1, spd: 1,
+        types: [...data.types], moves: moves, status: null,
+        limitBreak: 0, awaken: 0, heldItem: null, vitaminCount: 0,
+        sprite: getSpriteUrl(id, isShiny)
+    };
+    calcStats(p);
+    p.hp = p.maxHp;
+    return p;
+}
+
+function getAverageLevel() {
+    if(state.party.length === 0) return 5;
+    let sum = state.party.reduce((a, b) => a + b.level, 0);
+    return Math.floor(sum / state.party.length);
+}
+
+function getRandomWildId(isRaid = false) {
+    const baseIds = [1, 4, 7, 16, 92, 133, 152, 155, 158, 252, 255, 258, 390, 393, 447, 495, 498, 501, 653, 656, 722, 725, 813, 816, 906, 909];
+    const legendaries = [144, 145, 146, 150, 151, 249, 250, 382, 383, 384, 483, 484, 487, 493, 643, 644, 646, 716, 717, 718, 791, 792, 800, 888, 889, 890, 1007, 1008];
+
+    if (isRaid) return legendaries[Math.floor(Math.random() * legendaries.length)];
+
+    let currentLimit = REGION_LIMITS[state.regionIdx];
+    let regionBaseIds = baseIds.filter(id => id >= currentLimit.min && id <= currentLimit.max);
+    let regionLegends = legendaries.filter(id => id >= currentLimit.min && id <= currentLimit.max);
+
+    if (regionBaseIds.length === 0) regionBaseIds = baseIds;
+
+    if(Math.random() < 0.05 && regionLegends.length > 0) {
+        return regionLegends[Math.floor(Math.random() * regionLegends.length)];
+    }
+    return regionBaseIds[Math.floor(Math.random() * regionBaseIds.length)];
+}
+
+/* ==========================================
+   BATTLE SYSTEM
+   ========================================== */
+async function startBattle(isGymLeader, isRaid = false) {
+    inBattle = true;
+    
+    const fx = document.getElementById('encounter-fx');
+    fx.className = 'encounter-flash';
+    setTimeout(() => fx.className = '', 1500);
+    
+    await wait(1500);
+    
+    document.getElementById('battle-screen').style.display = 'flex';
+    document.getElementById('action-btns').style.display = 'grid';
+    document.getElementById('move-btns').style.display = 'none';
+    
+    const bg = document.getElementById('battle-bg');
+    bg.className = 'battle-bg ' + (isRaid ? 'bg-cave' : currentMapData[state.player.y][state.player.x] === 0 ? 'bg-grass' : 'bg-cave');
+    
+    let enemyLevel = Math.max(2, getAverageLevel() + Math.floor(Math.random()*5 - 2));
+    if(isGymLeader) enemyLevel += 5;
+    if(isRaid) enemyLevel += 20;
+
+    let enemyId = getRandomWildId(isRaid); 
+    let enemy = createPokemon(enemyId, enemyLevel);
+    
+    if(isRaid) { 
+        enemy.maxHp *= 10; 
+        enemy.hp = enemy.maxHp; 
+        document.getElementById('enemy-sprite').classList.add('boss-sprite');
+    } else {
+        document.getElementById('enemy-sprite').classList.remove('boss-sprite');
+    }
+
+    let activePlayerIdx = state.party.findIndex(p => p.hp > 0);
+    if(activePlayerIdx === -1) { 
+        showToast("Bạn không còn Pokémon!"); 
+        endBattle(); 
+        return; 
+    }
+
+    battleState = { 
+        enemy: enemy, 
+        playerIdx: activePlayerIdx, 
+        weather: document.getElementById('weather-overlay').className, 
+        isTrainer: isGymLeader, 
+        isRaid: isRaid,
+        participants: new Set([activePlayerIdx]),
+        playerDied: false
+    };
+
+    updateBattleUI();
+    let introTxt = isGymLeader ? `Thủ lĩnh Gym tung ra ${enemy.name}!` : isRaid ? `RAID BOSS Khổng lồ ${enemy.name} xuất hiện!` : `Một con ${enemy.name} xuất hiện!`;
+    await typeText(introTxt);
+}
+
+function updateBattleUI() {
+    let p = state.party[battleState.playerIdx];
+    let e = battleState.enemy;
+    
+    document.getElementById('player-name').innerText = p.name;
+    document.getElementById('player-lv').innerText = 'Lv' + p.level;
+    document.getElementById('player-hp-text').innerText = `${Math.floor(p.hp)}/${p.maxHp}`;
+    setHpBar('player-hp-fill', p.hp, p.maxHp);
+    document.getElementById('player-sprite').src = p.sprite;
+    if(p.awaken >= 10) document.getElementById('player-sprite').classList.add('overlord-aura');
+    else document.getElementById('player-sprite').classList.remove('overlord-aura');
+    
+    updateStatusBadge('player-status', p.status);
+    
+    document.getElementById('enemy-name').innerText = e.name;
+    document.getElementById('enemy-lv').innerText = 'Lv' + e.level;
+    setHpBar('enemy-hp-fill', e.hp, e.maxHp);
+    document.getElementById('enemy-sprite').src = e.sprite;
+    updateStatusBadge('enemy-status', e.status);
+    
+    let wxIcon = battleState.weather === 'rain' ? 'Trời đang mưa' : battleState.weather === 'snow' ? 'Có tuyết rơi' : '';
+    document.getElementById('battle-weather-icon').innerText = wxIcon;
+}
+
+function setHpBar(id, hp, max) {
+    let pct = (hp / max) * 100;
+    let el = document.getElementById(id);
+    el.style.width = pct + '%'; el.className = 'hp-bar-fill';
+    if(pct < 20) el.classList.add('hp-low'); else if(pct < 50) el.classList.add('hp-mid');
+}
+
+function updateStatusBadge(id, statusObj) {
+    let el = document.getElementById(id);
+    if(statusObj) {
+        el.style.display = 'inline-block'; el.innerText = statusObj.name;
+        el.style.background = statusObj.name === 'BRN' ? 'red' : statusObj.name === 'PSN' || statusObj.name === 'TOX' ? 'purple' : statusObj.name === 'PAR' ? 'orange' : statusObj.name === 'FRZ' ? 'lightblue' : 'gray';
+    } else el.style.display = 'none';
+}
+
+async function typeText(text) {
+    const box = document.getElementById('dialog-box');
+    box.innerHTML = '';
+    for(let i=0; i<text.length; i++) { box.innerHTML += text.charAt(i); await wait(15); }
+    await wait(600);
+}
+
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function showMoveMenu() {
+    document.getElementById('action-btns').style.display = 'none';
+    const mb = document.getElementById('move-btns');
+    mb.style.display = 'grid'; mb.innerHTML = '';
+    
+    let p = state.party[battleState.playerIdx];
+    let e = battleState.enemy;
+
+    p.moves.forEach((m, idx) => {
+        let btn = document.createElement('button');
+        let mData = MOVES[m.name];
+        let typeColor = TYPE_COLORS[mData.type] || '#111';
+        
+        // --- CALCULATE EFFECTIVENESS ---
+        let mult = 1;
+        if(mData.pwr > 0) {
+            if(mData.type === 'Infinity') mult = 2;
+            else e.types.forEach(t => {
+                if(t === 'Infinity') mult *= 0;
+                else if(TYPE_CHART[mData.type]?.[t] !== undefined) mult *= TYPE_CHART[mData.type][t];
+            });
+        }
+
+        let effLabel = "bth";
+        let effClass = "eff-bth";
+        if(mult > 1) { effLabel = "x" + mult; effClass = "eff-x2"; }
+        else if(mult < 1 && mult > 0) { effLabel = "x" + mult; effClass = "eff-x05"; }
+        else if(mult === 0) { effLabel = "x0"; effClass = "eff-x0"; }
+        
+        // Hide effectiveness for status moves (pwr 0)
+        let effHTML = mData.pwr > 0 ? `<span class="eff-tag ${effClass}">${effLabel}</span>` : '';
+
+        btn.className = `btn-retro p-2 flex flex-col justify-center ${m.pp === 0 ? 'opacity-50' : ''}`;
+        btn.style.border = `3px solid ${typeColor}`; 
+        
+        btn.innerHTML = `
+            <div style="color:${typeColor}; text-shadow: 1px 1px 0 #000;" class="text-xl font-bold w-full text-center">
+                ${m.name} ${effHTML}
+            </div>
+            <div class="flex justify-between items-center w-full mt-1">
+                <span class="type-badge" style="background-color:${typeColor};">${mData.type}</span>
+                <span class="text-xs font-bold text-gray-800 bg-gray-200 px-1 rounded border border-gray-400">PP: ${m.pp}/${m.maxPp}</span>
+            </div>
+        `;
+        btn.onclick = () => { if(m.pp > 0) executeTurn(idx); };
+        mb.appendChild(btn);
+    });
+    
+    let backBtn = document.createElement('button');
+    backBtn.className = 'btn-retro text-lg font-bold bg-gray-300 flex items-center justify-center'; 
+    backBtn.innerText = 'QUAY LẠI';
+    backBtn.onclick = () => { mb.style.display = 'none'; document.getElementById('action-btns').style.display = 'grid'; };
+    mb.appendChild(backBtn);
+}
+
+async function executeTurn(playerMoveIdx) {
+    document.getElementById('move-btns').style.display = 'none';
+    let p = state.party[battleState.playerIdx]; let e = battleState.enemy;
+    let pMove = p.moves[playerMoveIdx]; pMove.pp--;
+    let eMove = e.moves[Math.floor(Math.random() * e.moves.length)];
+    
+    // Tốc độ & Held Items (Scarf, Quick Claw)
+    let pSpd = p.spd * (p.status?.name === 'PAR' ? 0.5 : 1);
+    if(p.heldItem === 'Choice Scarf') pSpd *= 1.5;
+    
+    let eSpd = e.spd * (e.status?.name === 'PAR' ? 0.5 : 1);
+    if(e.heldItem === 'Choice Scarf') eSpd *= 1.5;
+    
+    let pFirst = pSpd >= eSpd;
+    
+    if (p.heldItem === 'Quick Claw' && Math.random() < 0.2) {
+        pFirst = true;
+        showToast(`${p.name} kích hoạt Móng Vuốt Nhanh!`);
+    } else if (e.heldItem === 'Quick Claw' && Math.random() < 0.2) {
+        pFirst = false;
+        showToast(`${e.name} kích hoạt Móng Vuốt Nhanh!`);
+    }
+    
+    let first = pFirst ? {f: p, m: pMove, isP: true} : {f: e, m: eMove, isP: false};
+    let second = pFirst ? {f: e, m: eMove, isP: false} : {f: p, m: pMove, isP: true};
+    
+    let fRes = await useMove(first.f, second.f, first.m, first.isP);
+    if(fRes === 'end' || fRes === 'switch') return;
+    
+    if(second.f.hp > 0) {
+        let sRes = await useMove(second.f, first.f, second.m, second.isP);
+        if(sRes === 'end' || sRes === 'switch') return;
+    }
+    
+    await applyEndTurnEffects(p, true); 
+    if(p.hp <= 0) {
+        let res = await handleFaint(true);
+        if (res === 'end' || res === 'switch') return;
+    }
+    
+    await applyEndTurnEffects(e, false); 
+    if(e.hp <= 0) {
+        let res = await handleFaint(false);
+        if (res === 'end' || res === 'switch') return;
+    }
+    
+    document.getElementById('action-btns').style.display = 'grid';
+}
+
+async function useMove(atk, def, moveObj, isPAttacker) {
+    let mData = MOVES[moveObj.name];
+    
+    if(atk.status) {
+        if(atk.status.name === 'FRZ') {
+            if(Math.random() < 0.2 || mData.type === 'Fire') { atk.status = null; await typeText(`${atk.name} đã rã băng!`); } 
+            else { await typeText(`${atk.name} bị đóng băng!`); return; }
+        }
+        if(atk.status.name === 'SLP') {
+            atk.status.turns++;
+            if(atk.status.turns > (Math.random()*2 + 1)) { atk.status = null; await typeText(`${atk.name} đã thức dậy!`); } 
+            else { await typeText(`${atk.name} đang ngủ say...`); return; }
+        }
+        if(atk.status.name === 'PAR' && Math.random() < 0.25) { await typeText(`${atk.name} bị tê liệt!`); return; }
+    }
+
+    await typeText(`${atk.name} dùng ${moveObj.name}!`);
+    let tSprite = isPAttacker ? document.getElementById('enemy-sprite') : document.getElementById('player-sprite');
+    tSprite.classList.add('shake'); setTimeout(() => tSprite.classList.remove('shake'), 300);
+    
+    let defHpBeforeHit = def.hp;
+    let finalDmg = 0;
+
+    if(mData.pwr > 0) {
+        let atkStat = atk.atk * (atk.status?.name === 'BRN' ? 0.5 : 1);
+        let typeMult = 1;
+        if(mData.type === 'Infinity') typeMult = 2;
+        else def.types.forEach(t => { if(t === 'Infinity') typeMult *= 0; else if(TYPE_CHART[mData.type]?.[t] !== undefined) typeMult *= TYPE_CHART[mData.type][t]; });
+        
+        if(typeMult === 0) { await typeText(`Không có tác dụng...`); return; }
+        
+        let stab = atk.types.includes(mData.type) ? 1.5 : 1;
+        let wxMult = battleState.weather === 'rain' ? (mData.type === 'Water' ? 1.5 : mData.type === 'Fire' ? 0.5 : 1) : 1;
+        
+        // Skill Level multiplier
+        let basePower = mData.pwr;
+        if(isPAttacker) basePower = Math.floor(basePower * (1 + (moveObj.lv - 1) * 0.1));
+        
+        // Achievements & Held Items
+        if(atk.heldItem === 'Life Orb') basePower *= 1.3;
+        if(atk.heldItem === 'Expert Belt' && typeMult > 1) basePower *= 1.2;
+        
+        let dmgMultiplierTitle = 1;
+        if(isPAttacker) {
+            if(typeMult > 1 && state.equippedTitle === 'Bậc Thầy Khắc Hệ') dmgMultiplierTitle += 0.10;
+            if(battleState.isRaid) {
+                if(state.equippedTitle === 'Kẻ Hủy Diệt Raid') dmgMultiplierTitle += 0.15;
+                if(state.equippedTitle === 'Thần Chết Raid') dmgMultiplierTitle += 0.50;
+            }
+            if(state.equippedTitle === 'Thợ Rèn Kỹ Năng') dmgMultiplierTitle += 0.10;
+            if(state.equippedTitle === 'Người Thức Tỉnh') dmgMultiplierTitle += 0.05;
+            if(state.equippedTitle === 'Kẻ Chinh Phục Tối Thượng' && atk.types.includes('Infinity')) dmgMultiplierTitle += 0.20;
+            
+            if(state.equippedTitle === 'Bậc Thầy Một Hệ') {
+                if (checkMonoType() && atk.types.includes(state.party[0].types[0])) dmgMultiplierTitle += 0.15;
+            }
+        }
+
+        // Overlord Crit Bonus (+20%) + Title Buffs
+        let critChance = mData.critMod ? 0.125 : 0.0625;
+        if(isPAttacker && atk.awaken >= 10) critChance += 0.20;
+        if(isPAttacker && state.equippedTitle === 'Kẻ Cuồng Chiến') critChance += 0.10;
+        let isCrit = Math.random() < critChance;
+        
+        let dmg = (((2 * atk.level / 5 + 2) * basePower * atkStat / def.def) / 50 + 2) * stab * typeMult * wxMult * (isCrit ? 1.5 : 1) * dmgMultiplierTitle * ((Math.random() * 0.15) + 0.85);
+        
+        finalDmg = Math.floor(Math.max(1, dmg));
+        def.hp -= finalDmg;
+
+        if (isPAttacker && finalDmg >= 1000) {
+            state.stats.maxDmg = Math.max(state.stats.maxDmg, finalDmg);
+            checkAchievements();
+        }
+        if (isPAttacker && typeMult > 1) {
+            state.stats.seHits++;
+            checkAchievements();
+        }
+        
+        // Focus Sash
+        if(def.hp <= 0 && defHpBeforeHit === def.maxHp && def.heldItem === 'Focus Sash') {
+            def.hp = 1;
+            updateBattleUI();
+            await typeText(`${def.name} trụ lại với 1 HP nhờ Dải Băng Tập Trung!`);
+            if (!isPAttacker) { state.stats.survivals++; checkAchievements(); }
+        } else {
+            def.hp = Math.max(0, def.hp);
+            updateBattleUI();
+        }
+        
+        if(isCrit) await typeText("Một đòn chí mạng!");
+        if(typeMult > 1) await typeText("Vô cùng hiệu quả!");
+        if(typeMult < 1) await typeText("Không hiệu quả lắm...");
+    }
+    
+    // Status Effects
+    if(def.hp > 0 && mData.eff && !def.status && Math.random() * 100 < mData.eff.chance) {
+        let s = mData.eff.status;
+        let imm = (s.includes('PSN') && (def.types.includes('Poison')||def.types.includes('Steel'))) || (s==='BRN' && def.types.includes('Fire')) || (s==='PAR' && def.types.includes('Electric')) || (s==='FRZ' && def.types.includes('Ice'));
+        if(!imm) { def.status = {name: s, turns: 0}; await typeText(`${def.name} bị ${s}!`); updateBattleUI(); }
+    }
+    
+    // Post-hit Held Items Logic (Life Orb self-damage, Shell Bell heal, Rocky Helmet recoil)
+    if (finalDmg > 0 && def.hp >= 0) {
+        if (atk.heldItem === 'Shell Bell') {
+            let heal = Math.floor(finalDmg / 8);
+            if (heal > 0 && atk.hp < atk.maxHp) {
+                atk.hp = Math.min(atk.maxHp, atk.hp + heal);
+                await typeText(`${atk.name} hồi máu từ Chuông Vỏ Ốc!`);
+                updateBattleUI();
+            }
+        }
+        if (atk.heldItem === 'Life Orb') {
+            atk.hp -= Math.floor(atk.maxHp * 0.1);
+            await typeText(`${atk.name} mất máu do Ngọc Sinh Mệnh!`);
+            if (atk.hp <= 0) atk.hp = 0;
+            updateBattleUI();
+        }
+        if (def.heldItem === 'Rocky Helmet' && mData.pwr > 0) {
+            atk.hp -= Math.floor(atk.maxHp / 8);
+            await typeText(`${atk.name} bị thương bởi Mũ Gai!`);
+            if (atk.hp <= 0) atk.hp = 0;
+            updateBattleUI();
+        }
+    }
+
+    if(atk.hp <= 0 && isPAttacker) return handleFaint(true); // If attacker died to recoil
+    if(atk.hp <= 0 && !isPAttacker) return handleFaint(false);
+
+    if(def.hp <= 0) return handleFaint(!isPAttacker);
+}
+
+async function applyEndTurnEffects(pkmn, isPlayer) {
+    if(pkmn.hp <= 0) return;
+    
+    // Status damage
+    if(pkmn.status) {
+        if(['BRN', 'PSN'].includes(pkmn.status.name)) { pkmn.hp -= Math.floor(pkmn.maxHp/16); await typeText(`${pkmn.name} mất máu do ${pkmn.status.name}!`); }
+        else if(pkmn.status.name === 'TOX') { pkmn.status.turns++; pkmn.hp -= Math.floor(pkmn.maxHp/16)*pkmn.status.turns; await typeText(`${pkmn.name} ngộ độc nặng!`); }
+        pkmn.hp = Math.max(0, pkmn.hp); updateBattleUI();
+    }
+
+    // Leftovers healing
+    if(pkmn.hp > 0 && pkmn.hp < pkmn.maxHp && pkmn.heldItem === 'Leftovers') {
+        pkmn.hp = Math.min(pkmn.maxHp, pkmn.hp + Math.floor(pkmn.maxHp / 16));
+        await typeText(`${pkmn.name} hồi phục nhờ Thức Ăn Thừa!`);
+        updateBattleUI();
+    }
+}
+
+async function giveExp(p, amount) {
+    p.exp += amount;
+    let leveledUp = false;
+    while(p.exp >= p.level * 20) {
+        let cap = LIMIT_CAPS[p.limitBreak] || 100;
+        if (p.level < cap) {
+            p.exp -= p.level * 20;
+            p.level++;
+            calcStats(p);
+            leveledUp = true;
+        } else {
+            p.exp = p.level * 20; // Locked EXP
+            break;
+        }
+    }
+    if (leveledUp) {
+        await typeText(`${p.name} lên cấp ${p.level}!`);
+        await checkEvolution(p);
+    }
+}
+
+// Hàm dùng chung để cấp kinh nghiệm sau mỗi trận đấu (Faint hoặc Catch)
+async function grantBattleExp() {
+    let expMult = battleState.isTrainer ? 1.5 : (battleState.isRaid ? 10 : 1);
+    let baseExpGain = Math.floor(battleState.enemy.level * 10 * expMult);
+    
+    // 1. Kinh nghiệm cho Pokémon trực chiến
+    let activeP = state.party[battleState.playerIdx];
+    let activeExpGain = baseExpGain;
+    if(activeP.heldItem === 'Lucky Egg') activeExpGain = Math.floor(activeExpGain * 1.5);
+    
+    await typeText(`Nhận ${activeExpGain} EXP!`);
+    await giveExp(activeP, activeExpGain);
+    
+    // 2. Kinh nghiệm cho Pokémon cầm EXP Share (Dù trong đội hình hay trong PC)
+    for (let bPkmn of state.party.concat(state.pc)) {
+        if (bPkmn !== activeP && bPkmn.hp > 0 && bPkmn.heldItem === 'EXP. Share') {
+            let shareExp = Math.floor(baseExpGain * 0.5);
+            await giveExp(bPkmn, shareExp);
+        }
+    }
+}
+
+async function handleFaint(isPlayerFainted) {
+    if(isPlayerFainted) {
+        battleState.playerDied = true;
+        await typeText(`${state.party[battleState.playerIdx].name} gục ngã!`);
+        if(state.party.findIndex(p => p.hp > 0) !== -1) {
+            showSwitchMenu(true);
+            return 'switch';
+        } else {
+            await typeText("Bạn hết Pokemon! Quay về trạm hồi sức..."); 
+            isMoving = false; moveTarget = null;
+            state.player.x = 2; state.player.y = 12; state.mapIdx = 0; 
+            state.party.forEach(p => { 
+                p.hp = p.maxHp; p.status = null; 
+                p.moves.forEach(m => { m.pp = m.maxPp; }); 
+            }); 
+            endBattle(); 
+            return 'end'; 
+        }
+    } else {
+        await typeText(`${battleState.enemy.name} gục ngã!`);
+        
+        // Tracking Wins
+        if(battleState.isRaid) { state.stats.bossKills++; }
+        else if(battleState.isTrainer) { state.stats.gymWins++; if(!battleState.playerDied) state.stats.flawlessGym = true; }
+        else { state.stats.wildWins++; }
+
+        // Cấp kinh nghiệm (Sử dụng hàm dùng chung)
+        await grantBattleExp();
+        
+        // --- REWARDS ---
+        if(battleState.isTrainer) {
+            if (state.badges <= state.regionIdx) {
+                state.badges++;
+                await typeText("Đã đánh bại Thủ Lĩnh! Nhận được HUY HIỆU!");
+                state.party.forEach(pk => { pk.hp = pk.maxHp; pk.status = null; pk.moves.forEach(m => { m.pp = m.maxPp; });}); 
+            }
+            let moneyGain = battleState.enemy.level * 100;
+            let hasAmulet = Array.from(battleState.participants).some(idx => state.party[idx]?.heldItem === 'Amulet Coin');
+            if(hasAmulet) moneyGain *= 2;
+            state.money += moneyGain;
+            if(hasAmulet) await typeText(`Đồng Tiền May Mắn nhân đôi tiền thưởng: ₽${moneyGain}!`);
+        }
+
+        if(battleState.isRaid) {
+            let dropRate = (state.equippedTitle === 'Thợ Săn Kho Báu') ? 1.1 : 1.0;
+            
+            if (Math.random() < dropRate) { state.inventory['Elemental Stone'] = (state.inventory['Elemental Stone'] || 0) + 1; state.stats.bossDrops++; }
+            if (Math.random() < dropRate) { state.inventory['Master Ball'] = (state.inventory['Master Ball'] || 0) + 1; state.stats.bossDrops++; }
+            
+            let vits = ['HP Up', 'Protein', 'Iron', 'Carbos'];
+            let rv = vits[Math.floor(Math.random() * vits.length)];
+            state.inventory[rv] = (state.inventory[rv] || 0) + 1;
+            state.stats.bossDrops++;
+            
+            let moneyGain = battleState.enemy.level * 500;
+            let hasAmulet = Array.from(battleState.participants).some(idx => state.party[idx]?.heldItem === 'Amulet Coin');
+            if(hasAmulet) moneyGain *= 2;
+            state.money += moneyGain;
+            
+            let extraDrop = "";
+            if (Math.random() < (0.10 * dropRate)) {
+                state.inventory['Shiny Charm'] = (state.inventory['Shiny Charm'] || 0) + 1;
+                extraDrop = ", ✨Shiny Charm";
+                state.stats.bossDrops++;
+            }
+            
+            await typeText(`Rớt: Master Ball, Elemental Stone, ${rv}${extraDrop}!`);
+            await typeText(`Nhận được ₽${moneyGain}${hasAmulet ? ' (Đã X2 tiền)' : ''}!`);
+        }
+
+        if(!state.pokedex.includes(battleState.enemy.id)) {
+            state.pokedex.push(battleState.enemy.id);
+        }
+        
+        checkAchievements();
+        endBattle();
+        return 'end';
+    }
+}
+
+async function checkEvolution(p) {
+    let data = POKEDEX[p.id];
+    if(data?.evos) {
+        for(let lv in data.evos) {
+            if(p.level >= parseInt(lv)) {
+                let nId = data.evos[lv]; let nData = POKEDEX[nId];
+                await typeText(`Gì thế này? ${p.name} đang tiến hoá...`); await wait(800);
+                p.id = nId; p.name = nData.name; p.types = [...nData.types]; p.sprite = getSpriteUrl(nId, p.shiny);
+                p.baseStats = [...nData.stats];
+                calcStats(p);
+                if(!state.pokedex.includes(nId)) state.pokedex.push(nId);
+                await typeText(`Chúc mừng! Tiến hoá thành ${p.name}!`); updateBattleUI(); break;
+            }
+        }
+    }
+    if(p.level >= 100 && data.sig && !p.moves.find(m => m.name === data.sig)) {
+        p.moves[0] = {name: data.sig, pp: MOVES[data.sig].pp, maxPp: MOVES[data.sig].pp, lv: 1};
+        await typeText(`Học được tuyệt chiêu: ${data.sig}!`);
+    }
+    checkAchievements();
+}
+
+function endBattle() {
+    inBattle = false; 
+    document.getElementById('battle-screen').style.display = 'none';
+    generateMap(); 
+    renderPlayer(); 
+    updateUI(); 
+    saveGame(false);
+}
+
+async function tryRun() {
+    if(battleState.isTrainer || battleState.isRaid) { await typeText("Không thể trốn khỏi trận đánh này!"); await wait(800); document.getElementById('action-btns').style.display = 'grid'; return; }
+    if(Math.random() < 0.7) { await typeText("Chạy trốn thành công!"); endBattle(); } 
+    else { await typeText("Không thể trốn thoát!"); executeEnemyTurnOnly(); }
+}
+
+async function executeEnemyTurnOnly() {
+    document.getElementById('action-btns').style.display = 'none';
+    let e = battleState.enemy, p = state.party[battleState.playerIdx];
+    
+    let mRes = await useMove(e, p, e.moves[Math.floor(Math.random() * e.moves.length)], false);
+    if(mRes === 'end' || mRes === 'switch') return;
+    
+    await applyEndTurnEffects(p, true); 
+    if(p.hp <= 0) {
+         let res = await handleFaint(true);
+         if (res === 'end' || res === 'switch') return;
+    }
+    
+    await applyEndTurnEffects(e, false); 
+    if(e.hp <= 0) {
+         let res = await handleFaint(false);
+         if (res === 'end' || res === 'switch') return;
+    }
+    
+    document.getElementById('action-btns').style.display = 'grid';
+}
+
+/* ==========================================
+   MENUS & ITEMS
+   ========================================== */
+function showBagMenu(inBattleContext = true) {
+    if(inBattleContext) {
+        document.getElementById('action-btns').style.display = 'none';
+    } else {
+        closeModal('menu-modal'); // Đóng menu chính nếu đang ở ngoài trận
+    }
+    
+    const b = document.getElementById('bag-items'); b.innerHTML = '';
+    let hasItems = false;
+    
+    for(let item in state.inventory) {
+        if(state.inventory[item] > 0) {
+            hasItems = true;
+            let div = document.createElement('div'); 
+            div.className = 'btn-retro p-3 flex flex-col text-left mb-2';
+            let iconUrl = getItemSpriteUrl(ITEMS[item].icon);
+            let descId = `bag-desc-${item.replace(/[\s.]+/g, '')}`;
+            
+            if (inBattleContext) {
+                // Battle context: only specific items are clickable directly
+                let canUseInBattle = ['ball', 'heal', 'cure'].includes(ITEMS[item].type);
+                div.innerHTML = `
+                    <div class="flex justify-between items-center ${canUseInBattle ? 'cursor-pointer' : 'opacity-50'}" onclick="${canUseInBattle ? `useItemBattle('${item}')` : ''}">
+                        <div class="flex items-center text-2xl font-bold"><img src="${iconUrl}" class="w-12 h-12 mr-3 object-contain" onerror="this.style.display='none'">${item}</div> 
+                        <span class="text-gray-600 font-bold text-xl">x${state.inventory[item]}</span>
+                    </div>`;
+            } else {
+                // Out of battle context: Show descriptions and allow using Map Items
+                let useBtnHTML = '';
+                if (ITEMS[item].type === 'map_use') {
+                    useBtnHTML = `<button class="mt-3 w-full bg-green-500 text-white font-bold py-2 border-2 border-black rounded shadow-[1px_1px_0_#000] active:translate-y-[1px] active:shadow-none text-xl" onclick="useMapItem('${item}')">Sử Dụng Ngay</button>`;
+                }
+
+                div.innerHTML = `
+                    <div class="flex justify-between items-center cursor-pointer" onclick="document.getElementById('${descId}').classList.toggle('hidden')">
+                        <div class="flex items-center text-2xl font-bold"><img src="${iconUrl}" class="w-12 h-12 mr-3 object-contain" onerror="this.style.display='none'">${item}</div> 
+                        <span class="text-gray-600 font-bold text-xl">x${state.inventory[item]}</span>
+                    </div>
+                    <div id="${descId}" class="hidden mt-2 pt-2 border-t border-gray-300 text-base text-gray-700 font-normal">
+                        ${ITEMS[item].desc}
+                        ${useBtnHTML}
+                    </div>
+                `;
+            }
+            b.appendChild(div);
+        }
+    }
+    if (!hasItems) b.innerHTML = '<div class="text-center font-bold text-gray-500 mt-4">Túi đồ trống.</div>';
+    
+    let closeBtn = document.querySelector('#bag-modal .close-btn');
+    closeBtn.onclick = () => {
+        closeModal('bag-modal');
+        if(inBattleContext) document.getElementById('action-btns').style.display='grid';
+    };
+    
+    document.getElementById('bag-modal').style.display = 'flex';
+}
+
+function useMapItem(item) {
+    if (item === 'Boss Lure') {
+        if (state.inventory['Boss Lure'] <= 0) return;
+        state.inventory['Boss Lure']--;
+        closeModal('bag-modal');
+        showToast("Đã dùng Mồi Nhử Boss! Kẻ địch mạnh xuất hiện!");
+        startBattle(false, true);
+    }
+}
+
+async function useItemBattle(item) {
+    let itemData = ITEMS[item];
+    if (!['ball', 'heal', 'cure'].includes(itemData.type)) {
+        showToast("Vật phẩm này không thể dùng trực tiếp trong trận!");
+        return;
+    }
+
+    closeModal('bag-modal'); state.inventory[item]--; 
+    
+    if(itemData.type === 'ball') {
+        if(battleState.isTrainer) { await typeText("Không thể bắt Pokemon của Gym Leader!"); await executeEnemyTurnOnly(); return; }
+        await typeText(`Bạn ném ${item}!`); await wait(800);
+        state.stats.ballsUsed++;
+        
+        let cr = ((3 * battleState.enemy.maxHp - 2 * battleState.enemy.hp) * itemData.rate) / (3 * battleState.enemy.maxHp);
+        if(battleState.enemy.status) cr *= 1.5; if(item === 'Master Ball') cr = 2;
+        
+        // Title buffs
+        if(state.equippedTitle === 'Nhà Sưu Tập Tập Sự') cr *= 1.05;
+        if(state.equippedTitle === 'Tay Chơi Bóng' && item === 'Poké Ball') cr *= 1.10;
+        
+        if(Math.random() < cr) {
+            await typeText(`Đã bắt được ${battleState.enemy.name}!`);
+            
+            // MỚI: Cấp kinh nghiệm khi bắt thành công
+            await grantBattleExp();
+
+            if(!state.pokedex.includes(battleState.enemy.id)) state.pokedex.push(battleState.enemy.id);
+            if(state.party.length < 6) state.party.push(battleState.enemy); else { state.pc.push(battleState.enemy); await typeText(`Đã gửi vào PC.`); }
+            checkAchievements();
+            endBattle();
+        } else { await typeText(`${battleState.enemy.name} đã thoát ra!`); await executeEnemyTurnOnly(); }
+    } else if (itemData.type === 'heal') {
+        let p = state.party[battleState.playerIdx]; p.hp = Math.min(p.maxHp, p.hp + itemData.heal);
+        updateBattleUI(); await typeText(`Đã hồi máu cho ${p.name}!`); await executeEnemyTurnOnly();
+    }
+}
+
+function showSwitchMenu(force=false) {
+    const list = document.getElementById('party-list'); list.innerHTML = '';
+    state.party.forEach((p, idx) => {
+        let div = document.createElement('div'); div.className = `btn-retro p-3 flex justify-between items-center ${p.hp===0 ? 'opacity-50 bg-red-200' : ''}`;
+        div.innerHTML = `<img src="${p.sprite}" class="w-16 h-16"> <span class="font-bold text-xl">${p.name} Lv${p.level}</span> <span class="text-lg">${Math.floor(p.hp)}/${p.maxHp}</span>`;
+        div.onclick = async () => {
+            if(p.hp > 0 && idx !== battleState.playerIdx) {
+                closeModal('party-modal'); 
+                battleState.playerIdx = idx; 
+                battleState.participants.add(idx); // Ghi nhận tham gia trận đấu (cho Amulet Coin)
+                updateBattleUI();
+                await typeText(`Ra đi, ${p.name}!`);
+                if(!force) await executeEnemyTurnOnly(); else document.getElementById('action-btns').style.display = 'grid';
+            }
+        };
+        list.appendChild(div);
+    });
+    document.getElementById('pc-list').style.display = 'none'; document.getElementById('party-modal').style.display = 'flex';
+}
+
+function updateUI() {
+    document.getElementById('ui-money').innerText = `₽${state.money}`;
+    document.getElementById('ui-money-main').innerText = `₽${state.money}`;
+    document.getElementById('ui-badges').innerText = state.badges;
+    
+    let titleEl = document.getElementById('equipped-title-display');
+    if (state.equippedTitle) {
+        titleEl.style.display = 'block';
+        titleEl.innerText = `🏆 ${state.equippedTitle}`;
+    } else {
+        titleEl.style.display = 'none';
+    }
+
+    // CẬP NHẬT QUICK PARTY HIỂN THỊ LV
+    const qp = document.getElementById('quick-party'); qp.innerHTML = '';
+    state.party.forEach(p => {
+        let div = document.createElement('div'); 
+        div.className = 'party-member-card';
+        let pct = (p.hp / p.maxHp) * 100; 
+        let color = pct > 50 ? '#22c55e' : pct > 20 ? '#eab308' : '#ef4444';
+        div.innerHTML = `
+            <img src="${p.sprite}" class="w-12 h-12 mr-2 object-contain drop-shadow-md">
+            <div class="flex flex-col justify-center">
+                <div class="pkmn-level-tag">Lv.${p.level}</div>
+                <div class="mini-hp-bg mt-0.5">
+                    <div class="mini-hp-fill" style="width:${pct}%; background:${color}"></div>
+                </div>
+            </div>`;
+        qp.appendChild(div);
+    });
+}
+
+function openPartyModal() {
+    const list = document.getElementById('party-list'), pcList = document.getElementById('pc-list');
+    list.innerHTML = ''; pcList.innerHTML = '';
+    document.getElementById('pc-count').innerText = `${state.pc.length} Pkmn`;
+    
+    // Render Đội hình (Party)
+    state.party.forEach((p, idx) => {
+        let div = document.createElement('div'); 
+        div.className = 'btn-retro p-3 flex justify-between items-center gap-3 mb-2';
+        let hpPct = (p.hp / p.maxHp) * 100;
+        let hpColor = hpPct > 50 ? '#22c55e' : hpPct > 20 ? '#eab308' : '#ef4444';
+        
+        div.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="bg-white border-2 border-gray-400 rounded p-1 w-20 h-20 flex items-center justify-center shrink-0">
+                    <img src="${p.sprite}" class="max-w-full max-h-full drop-shadow-md">
+                </div>
+                <div class="flex flex-col">
+                    <div><b class="text-xl">${p.name}</b> <span class="text-xs font-bold text-yellow-700 bg-yellow-200 px-1.5 py-0.5 rounded border border-yellow-500 align-middle">Lv${p.level}</span></div>
+                    <div class="w-32 h-3 bg-gray-800 rounded-full mt-1.5 border border-black overflow-hidden relative">
+                        <div class="h-full transition-all duration-300" style="width: ${hpPct}%; background-color: ${hpColor};"></div>
+                    </div>
+                    <div class="text-xs font-bold mt-1 text-gray-700">${Math.floor(p.hp)}/${p.maxHp} HP</div>
+                </div>
+            </div>
+        `;
+        let acts = document.createElement('div'); acts.className = 'flex flex-col gap-2 shrink-0';
+        
+        let btnView = document.createElement('button'); 
+        btnView.className = 'bg-blue-500 text-white px-4 py-1.5 rounded font-bold border-2 border-black text-sm shadow-[1px_1px_0_#000] active:translate-y-[1px] active:shadow-none'; 
+        btnView.innerText = 'Xem';
+        btnView.onclick = () => showStatCard(p);
+        
+        let btnMove = document.createElement('button'); 
+        btnMove.className = 'bg-yellow-400 text-black px-4 py-1.5 rounded font-bold border-2 border-black text-sm shadow-[1px_1px_0_#000] active:translate-y-[1px] active:shadow-none'; 
+        btnMove.innerText = 'Cất PC';
+        btnMove.onclick = () => {
+            if(state.party.length > 1) { state.pc.push(state.party.splice(idx,1)[0]); openPartyModal(); checkAchievements(); } 
+            else showToast("Phải giữ lại ít nhất 1 Pokémon!"); 
+        };
+        
+        acts.appendChild(btnView); acts.appendChild(btnMove); div.appendChild(acts);
+        list.appendChild(div);
+    });
+
+    // Render Kho chứa (PC)
+    state.pc.forEach((p, idx) => {
+        let div = document.createElement('div');
+        div.className = 'bg-white border-2 border-gray-500 rounded-lg p-2 relative flex flex-col items-center shadow-[2px_2px_0_rgba(0,0,0,0.2)] hover:bg-blue-50 transition-colors cursor-pointer';
+        
+        div.innerHTML = `
+            <div class="absolute top-0 right-0 bg-gray-800 text-white text-[11px] px-1.5 py-0.5 font-bold rounded-bl-lg rounded-tr-md z-10 shadow-sm">Lv${p.level}</div>
+            <img src="${p.sprite}" class="w-16 h-16 object-contain drop-shadow-md mt-2">
+            <div class="text-xs font-bold truncate w-full text-center mt-1 text-gray-800">${p.name}</div>
+        `;
+        let acts = document.createElement('div'); acts.className = 'flex w-full gap-1.5 mt-2';
+        
+        let btnView = document.createElement('button'); 
+        btnView.className = 'bg-blue-500 text-white text-xs flex-1 py-1 rounded border border-black font-bold shadow-[1px_1px_0_#000] active:translate-y-[1px] active:shadow-none'; 
+        btnView.innerText = 'ℹ️';
+        btnView.onclick = (e) => { e.stopPropagation(); showStatCard(p); };
+        
+        let btnMove = document.createElement('button'); 
+        btnMove.className = 'bg-green-500 text-white text-xs flex-1 py-1 rounded border border-black font-bold shadow-[1px_1px_0_#000] active:translate-y-[1px] active:shadow-none'; 
+        btnMove.innerText = '🎒';
+        btnMove.onclick = (e) => {
+            e.stopPropagation();
+            if(state.party.length < 6) { state.party.push(state.pc.splice(idx,1)[0]); openPartyModal(); checkAchievements(); } 
+            else showToast("Đội hình đầy! (Tối đa 6)"); 
+        };
+        
+        acts.appendChild(btnView); acts.appendChild(btnMove); div.appendChild(acts);
+        pcList.appendChild(div);
+    });
+    
+    updateUI(); 
+    openModal('party-modal');
+}
+
+function switchTab(tId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.getElementById(tId).classList.add('active');
+}
+
+function showStatCard(p) {
+    curStatPkmn = p;
+    switchTab('tab-info');
+
+    // Headers
+    document.getElementById('stat-img').src = p.sprite;
+    document.getElementById('stat-img').className = `w-24 h-24 object-contain bg-white border-2 border-black rounded ${p.awaken >= 10 ? 'overlord-aura' : ''}`;
+    document.getElementById('stat-name').innerText = p.name + (p.shiny ? ' ✨' : '');
+    document.getElementById('stat-lv').innerText = p.level;
+    document.getElementById('stat-lb').innerText = p.limitBreak;
+    document.getElementById('stat-aw').innerText = p.awaken;
+    document.getElementById('stat-overlord').style.display = p.awaken >= 10 ? 'inline' : 'none';
+    document.getElementById('stat-exp').innerText = `${p.exp}/${p.level*20}`;
+    
+    let sellPrice = p.level * 100 + p.limitBreak * 1000 + p.awaken * 500;
+    if(p.shiny) sellPrice *= 10;
+    let btnSell = document.getElementById('btn-sell-pkmn');
+    if(btnSell) {
+        btnSell.innerText = `Bán: ₽${sellPrice}`;
+        btnSell.onclick = () => sellCurrentPokemon(p.uid, sellPrice);
+    }
+    
+    let tDiv = document.getElementById('stat-types'); tDiv.innerHTML = '';
+    p.types.forEach(t => {
+        let s = document.createElement('span'); s.className = 'type-badge mr-1';
+        s.style.backgroundColor = TYPE_COLORS[t]; s.innerText = t; tDiv.appendChild(s);
+    });
+    
+    // Tab 1: Stats
+    document.getElementById('val-hp').innerText = p.maxHp; document.getElementById('bar-hp').value = p.maxHp;
+    document.getElementById('val-atk').innerText = p.atk; document.getElementById('bar-atk').value = p.atk;
+    document.getElementById('val-def').innerText = p.def; document.getElementById('bar-def').value = p.def;
+    document.getElementById('val-spd').innerText = p.spd; document.getElementById('bar-spd').value = p.spd;
+    
+    // HELD ITEM UI
+    let heldItemContainer = document.getElementById('stat-held-item');
+    if (p.heldItem) {
+        let iconUrl = getItemSpriteUrl(ITEMS[p.heldItem].icon);
+        heldItemContainer.innerHTML = `<img src="${iconUrl}" class="w-6 h-6 mr-1 object-contain"> ${p.heldItem}`;
+    } else {
+        heldItemContainer.innerHTML = "Không có";
+    }
+
+    let mDiv = document.getElementById('stat-moves'); mDiv.innerHTML = '';
+    p.moves.forEach(m => {
+        let md = MOVES[m.name];
+        let tColor = TYPE_COLORS[md.type];
+        mDiv.innerHTML += `
+            <div class="bg-gray-100 p-1 border-[3px] rounded" style="border-color:${tColor}">
+                <b style="color:${tColor}; text-shadow: 1px 1px 0px #000; font-size:1.1rem;">${m.name}</b><br>
+                <div class="flex justify-between items-center text-[10px]">
+                    <span class="type-badge text-[9px]" style="background-color:${tColor}; padding: 1px 4px;">${md.type}</span>
+                    <span>Lv.${m.lv} | PP: ${m.pp}/${m.maxPp}</span>
+                </div>
+            </div>`;
+    });
+
+    // Tab 2: Vitamins & Reset Ticket
+    let ticketIconUrl = getItemSpriteUrl('mystic-ticket');
+    document.getElementById('reset-ticket-ui').innerHTML = `
+        <div class="flex justify-between items-center bg-red-50 p-2 border border-red-400 rounded text-base shadow-sm mb-2">
+            <div class="flex items-center"><img src="${ticketIconUrl}" class="w-8 h-8 mr-2 object-contain" onerror="this.style.display='none'"> <span class="font-bold text-red-800">Vé Tẩy Điểm (x${state.inventory['Reset Ticket'] || 0})</span></div>
+            <button class="bg-red-500 text-white px-4 py-1 font-bold border border-black shadow active:translate-y-[1px]" onclick="useResetTicket()">Tẩy</button>
+        </div>
+    `;
+
+    let vl = document.getElementById('vitamin-list'); vl.innerHTML = '';
+    ['HP Up', 'Protein', 'Iron', 'Carbos'].forEach(v => {
+        let iconUrl = getItemSpriteUrl(ITEMS[v].icon);
+        vl.innerHTML += `
+        <div class="flex justify-between items-center bg-gray-100 p-2 border rounded text-base shadow-sm">
+            <div class="flex items-center"><img src="${iconUrl}" class="w-8 h-8 mr-2 object-contain" onerror="this.style.display='none'"> <span class="font-bold">${v} (x${state.inventory[v] || 0})</span></div>
+            <button class="bg-green-500 text-white px-4 py-1 font-bold border border-black shadow active:translate-y-[1px]" onclick="useVitamin('${v}')">Dùng</button>
+        </div>`;
+    });
+
+    // Tab 3: Skills
+    document.getElementById('cnt-shard').innerText = state.inventory['Skill Shard'] || 0;
+    document.getElementById('cnt-pp').innerText = state.inventory['PP Max'] || 0;
+    let sl = document.getElementById('skill-upgrade-list'); sl.innerHTML = '';
+    p.moves.forEach((m, idx) => {
+        sl.innerHTML += `
+        <div class="bg-gray-100 p-2 border rounded flex justify-between items-center shadow-sm">
+            <div class="leading-tight"><b class="text-sm">${m.name}</b><br><span class="text-xs text-gray-500">Cấp: ${m.lv}/5</span></div>
+            <div class="flex gap-1">
+                <button class="bg-orange-500 text-white text-xs font-bold px-2 py-1 border border-black shadow active:translate-y-[1px]" onclick="upgSkill(${idx})">+DMG</button>
+                <button class="bg-purple-500 text-white text-xs font-bold px-2 py-1 border border-black shadow active:translate-y-[1px]" onclick="upgPP(${idx})">+PP</button>
+            </div>
+        </div>`;
+    });
+
+    // Tab 4: Awaken
+    document.getElementById('awaken-lvl').innerText = p.awaken;
+    let awM = document.getElementById('awaken-materials'); awM.innerHTML = '';
+    let dupes = state.pc.filter(dp => dp.id === p.id && dp.uid !== p.uid);
+    dupes.forEach(dp => {
+        awM.innerHTML += `
+        <div class="bg-white p-2 border-2 border-gray-400 rounded text-center cursor-pointer hover:bg-red-200 transition-colors" onclick="confirmAwaken(${dp.uid})">
+            <img src="${dp.sprite}" class="w-14 h-14 mx-auto drop-shadow-md">
+            <div class="text-xs font-bold bg-yellow-200 border mt-1">Lv${dp.level}</div>
+        </div>`;
+    });
+    if(dupes.length === 0) awM.innerHTML = '<div class="col-span-3 text-base text-center text-gray-500 font-bold p-4">Không tìm thấy bản sao nào trong PC.</div>';
+
+    openModal('stat-modal');
+}
+
+function showEquipMenu() {
+    let list = document.getElementById('equip-items-list');
+    list.innerHTML = '';
+
+    // Nút tháo trang bị
+    if (curStatPkmn.heldItem) {
+        let unequipBtn = document.createElement('button');
+        unequipBtn.className = 'btn-retro w-full p-2 mb-3 text-red-600 font-bold text-lg';
+        unequipBtn.innerText = 'Tháo trang bị hiện tại';
+        unequipBtn.onclick = () => {
+            state.inventory[curStatPkmn.heldItem] = (state.inventory[curStatPkmn.heldItem] || 0) + 1;
+            curStatPkmn.heldItem = null;
+            closeModal('equip-modal');
+            showStatCard(curStatPkmn);
+            showToast("Đã tháo trang bị.");
+        };
+        list.appendChild(unequipBtn);
+    }
+
+    let hasItems = false;
+    for (let item in state.inventory) {
+        if (ITEMS[item].type === 'held' && state.inventory[item] > 0) {
+            hasItems = true;
+            let btn = document.createElement('button');
+            btn.className = 'btn-retro w-full p-2 flex items-center mb-2 text-left';
+            btn.innerHTML = `
+                <img src="${getItemSpriteUrl(ITEMS[item].icon)}" class="w-10 h-10 mr-3 object-contain">
+                <div>
+                    <div class="font-bold text-xl">${item}</div>
+                    <div class="text-sm text-gray-600">Sở hữu: ${state.inventory[item]}</div>
+                </div>`;
+            btn.onclick = () => {
+                // Thu hồi đồ cũ (nếu có)
+                if (curStatPkmn.heldItem) {
+                    state.inventory[curStatPkmn.heldItem] = (state.inventory[curStatPkmn.heldItem] || 0) + 1;
+                }
+                // Gắn đồ mới
+                curStatPkmn.heldItem = item;
+                state.inventory[item]--;
+                closeModal('equip-modal');
+                showStatCard(curStatPkmn);
+                showToast(`Đã trang bị ${item}!`);
+            };
+            list.appendChild(btn);
+        }
+    }
+    if (!hasItems) list.innerHTML += '<div class="text-center text-gray-500 font-bold text-lg p-4">Không có trang bị cầm tay nào trong túi.</div>';
+
+    openModal('equip-modal');
+}
+
+function sellCurrentPokemon(uid, price) {
+    let inPartyIdx = state.party.findIndex(p => p.uid === uid);
+    if(inPartyIdx !== -1 && state.party.length <= 1) {
+        showToast("Không thể bán Pokémon duy nhất trong đội hình!");
+        return;
+    }
+
+    showFacilityModal("💰 Bán Pokémon", `Bạn chắc chắn muốn bán Pokémon này với giá ₽${price}?`, "Bán ngay", () => {
+        // Thu hồi trang bị nếu có trước khi bán
+        let targetPkmn = inPartyIdx !== -1 ? state.party[inPartyIdx] : state.pc.find(p => p.uid === uid);
+        if (targetPkmn && targetPkmn.heldItem) {
+            state.inventory[targetPkmn.heldItem] = (state.inventory[targetPkmn.heldItem] || 0) + 1;
+        }
+
+        if(inPartyIdx !== -1) {
+            state.party.splice(inPartyIdx, 1);
+        } else {
+            state.pc = state.pc.filter(p => p.uid !== uid);
+        }
+        state.money += price;
+        showToast(`Đã bán thành công! Nhận được ₽${price}.`);
+        closeModal('stat-modal');
+        openPartyModal(); 
+    });
+}
+
+function useVitamin(vName) {
+    if(!state.inventory[vName] || state.inventory[vName] <= 0) { showToast("Không có vật phẩm này!"); return; }
+    state.inventory[vName]--;
+    
+    let buffMult = (state.equippedTitle === 'Chuyên Gia Dinh Dưỡng') ? 1.2 : 1.0;
+
+    if(vName === 'HP Up') curStatPkmn.baseStats[0] += Math.floor(10 * buffMult);
+    if(vName === 'Protein') curStatPkmn.baseStats[1] += Math.floor(5 * buffMult);
+    if(vName === 'Iron') curStatPkmn.baseStats[2] += Math.floor(5 * buffMult);
+    if(vName === 'Carbos') curStatPkmn.baseStats[3] += Math.floor(5 * buffMult);
+    
+    curStatPkmn.vitaminCount = (curStatPkmn.vitaminCount || 0) + 1;
+    state.stats.vitaminsUsed++;
+    
+    calcStats(curStatPkmn);
+    showToast(`Đã dùng ${vName}! Tăng Chỉ số Vĩnh viễn.`);
+    showStatCard(curStatPkmn);
+    updateUI();
+    checkAchievements();
+}
+
+function useResetTicket() {
+    if(!state.inventory['Reset Ticket'] || state.inventory['Reset Ticket'] <= 0) { showToast("Không có Vé Tẩy Điểm!"); return; }
+    
+    showFacilityModal("🌀 Tẩy Điểm Vitamin", `Bạn chắc chắn muốn đặt lại toàn bộ Vitamin đã dùng cho ${curStatPkmn.name} về gốc?`, "Đồng ý", () => {
+        state.inventory['Reset Ticket']--;
+        curStatPkmn.baseStats = [...POKEDEX[curStatPkmn.id].stats];
+        curStatPkmn.vitaminCount = 0;
+        calcStats(curStatPkmn);
+        showToast(`Đã tẩy điểm thành công cho ${curStatPkmn.name}!`);
+        showStatCard(curStatPkmn);
+        updateUI();
+    });
+}
+
+function doLimitBreak() {
+    if(curStatPkmn.limitBreak >= 3) { showToast("Pokémon này đã Tối đa Đột Phá!"); return; }
+    let cap = LIMIT_CAPS[curStatPkmn.limitBreak];
+    if(curStatPkmn.level < cap) { showToast(`Cần đạt tối thiểu Cấp độ ${cap} để Đột phá!`); return; }
+    if(state.money < 5000 || !(state.inventory['Elemental Stone'] > 0)) { showToast("Thiếu 5000₽ hoặc Đá Nguyên Tố!"); return; }
+    
+    state.money -= 5000;
+    state.inventory['Elemental Stone']--;
+    curStatPkmn.limitBreak++;
+    calcStats(curStatPkmn);
+    showToast("🌟 ĐỘT PHÁ THÀNH CÔNG! Chỉ số đã tăng mạnh.");
+    showStatCard(curStatPkmn);
+    updateUI();
+    checkAchievements();
+}
+
+function upgSkill(idx) {
+    if(curStatPkmn.moves[idx].lv >= 5) { showToast("Chiêu thức này đã đạt Cấp tối đa!"); return; }
+    if(state.money < 3000 || !(state.inventory['Skill Shard'] > 0)) { showToast("Thiếu 3000₽ hoặc Skill Shard!"); return; }
+    state.money -= 3000;
+    state.inventory['Skill Shard']--;
+    curStatPkmn.moves[idx].lv++;
+    showToast("💥 Cường hóa chiêu thức thành công!");
+    showStatCard(curStatPkmn);
+    checkAchievements();
+}
+
+function upgPP(idx) {
+    if(!(state.inventory['PP Max'] > 0)) { showToast("Cần có PP Max trong túi đồ!"); return; }
+    state.inventory['PP Max']--;
+    curStatPkmn.moves[idx].maxPp += 5;
+    curStatPkmn.moves[idx].pp += 5;
+    showToast("🔋 Tăng tối đa PP thành công!");
+    showStatCard(curStatPkmn);
+}
+
+function confirmAwaken(dupeUid) {
+    if(curStatPkmn.awaken >= 10) { showToast("Đã đạt Thức tỉnh tối đa!"); return; }
+    // Không dùng window.confirm vì dễ lỗi trên WebView, ta xử lý trực tiếp luôn cho mượt
+    state.pc = state.pc.filter(p => p.uid !== dupeUid);
+    curStatPkmn.awaken++;
+    calcStats(curStatPkmn);
+    
+    if(curStatPkmn.awaken === 10) {
+        showToast("👑 CHÚC MỪNG! POKÉMON Đã HÓA OVERLORD!");
+    } else {
+        showToast(`✨ Thức tỉnh thành công! Đạt mức +${curStatPkmn.awaken}`);
+    }
+    
+    showStatCard(curStatPkmn);
+    openPartyModal(); // Cập nhật lại UI ngầm PC list
+    checkAchievements();
+}
+
+function openPokedex() {
+    document.getElementById('dex-count').innerText = state.pokedex.length;
+    const container = document.getElementById('dex-container'); 
+    container.innerHTML = '';
+    
+    REGION_LIMITS.forEach(region => {
+        let regionMons = Object.keys(POKEDEX).filter(id => parseInt(id) >= region.min && parseInt(id) <= region.max);
+        
+        if (regionMons.length > 0) {
+            let header = document.createElement('h3');
+            header.className = 'text-2xl font-bold border-b-4 border-gray-600 mt-3 pb-1 text-blue-900';
+            header.innerText = region.name;
+            container.appendChild(header);
+
+            let grid = document.createElement('div');
+            grid.className = 'grid grid-cols-3 gap-3';
+            
+            regionMons.forEach(id => {
+                let div = document.createElement('div'); div.className = 'border-4 border-gray-400 p-2 text-center bg-white rounded flex flex-col items-center justify-center';
+                let caught = state.pokedex.includes(parseInt(id));
+                div.innerHTML = `<img src="${getSpriteUrl(id)}" class="w-full h-24 object-contain ${caught ? '' : 'brightness-0 opacity-20'}">
+                                 <div class="text-sm font-bold mt-2 truncate w-full" title="${caught ? POKEDEX[id].name : '?'}">${caught ? POKEDEX[id].name : '? ? ?'}</div>`;
+                grid.appendChild(div);
+            });
+            
+            container.appendChild(grid);
+        }
+    });
+    
+    openModal('pokedex-modal');
+}
+
+let currentShopCategory = 'ball';
+
+function openShop(category = currentShopCategory) {
+    currentShopCategory = category;
+    document.getElementById('shop-money').innerText = state.money;
+    
+    // Cập nhật UI cho Tab
+    const tabs = document.getElementById('shop-tabs').children;
+    for (let i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove('active');
+        if (tabs[i].getAttribute('onclick').includes(`'${category}'`)) {
+            tabs[i].classList.add('active');
+        }
+    }
+
+    const list = document.getElementById('shop-items'); 
+    list.innerHTML = '';
+    
+    // Bộ lọc danh mục
+    const categoryMap = {
+        'ball': ['ball'],
+        'heal': ['heal', 'cure'],
+        'upgrade': ['vitamin', 'stone', 'shard', 'ppmax', 'key', 'upgrade', 'map_use'],
+        'held': ['held']
+    };
+
+    let priceMult = (state.equippedTitle === 'Triệu Phú Paldea') ? 0.85 : 1.0;
+
+    for(let item in ITEMS) {
+        if(categoryMap[category].includes(ITEMS[item].type)) {
+            let div = document.createElement('div'); 
+            div.className = 'btn-retro p-3 flex flex-col text-left mb-2';
+            let iconUrl = getItemSpriteUrl(ITEMS[item].icon);
+            let descId = `shop-desc-${item.replace(/[\s.]+/g, '')}`;
+            
+            let displayPrice = Math.floor(ITEMS[item].price * priceMult);
+
+            div.innerHTML = `
+                <div class="flex justify-between items-center cursor-pointer" onclick="document.getElementById('${descId}').classList.toggle('hidden')">
+                    <div class="flex items-center">
+                        <img src="${iconUrl}" class="w-14 h-14 mr-3 object-contain" onerror="this.style.display='none'"> 
+                        <div>
+                            <b class="text-xl">${item}</b> 
+                            <br><span class="text-base text-gray-600">Sở hữu: ${state.inventory[item]||0}</span>
+                        </div>
+                    </div>
+                    <button class="bg-blue-600 text-white px-4 py-2 font-bold border-2 border-black rounded shadow-[1px_1px_0_#000] active:translate-y-[1px] active:shadow-none" onclick="event.stopPropagation(); buyItem('${item}')">₽${displayPrice}</button>
+                </div>
+                <div id="${descId}" class="hidden mt-3 pt-2 border-t border-gray-300 text-base text-gray-800 font-normal">
+                    ${ITEMS[item].desc}
+                </div>
+            `;
+            list.appendChild(div);
+        }
+    }
+    openModal('shop-modal');
+}
+
+function buyItem(item) {
+    let priceMult = (state.equippedTitle === 'Triệu Phú Paldea') ? 0.85 : 1.0;
+    let actualPrice = Math.floor(ITEMS[item].price * priceMult);
+    
+    if(state.money >= actualPrice) {
+        state.money -= actualPrice; 
+        state.inventory[item] = (state.inventory[item] || 0) + 1;
+        openShop(currentShopCategory); 
+        updateUI();
+    } else {
+        showToast("Không đủ tiền để mua vật phẩm này!");
+    }
+}
+
+/* ==========================================
+   ACHIEVEMENTS SYSTEM
+   ========================================== */
+function checkMonoType() {
+    if (state.party.length !== 6) return false;
+    let firstType = state.party[0].types[0];
+    return state.party.every(p => p.types.includes(firstType));
+}
+
+function checkAchievements() {
+    let newlyUnlocked = false;
+    let allPkmn = state.party.concat(state.pc);
+
+    for (let id in ACHIEVEMENTS) {
+        if (state.unlockedTitles.includes(id)) continue;
+        
+        let reqMet = false;
+        switch(id) {
+            case 'A1': reqMet = state.pokedex.length >= 10; break;
+            case 'A2': reqMet = state.pokedex.length >= 50; break;
+            case 'A3': reqMet = state.pokedex.length >= 100; break;
+            case 'A4': reqMet = allPkmn.some(p => p.shiny); break;
+            case 'A5': reqMet = allPkmn.filter(p => p.shiny).length >= 10; break;
+            case 'A6': reqMet = [134, 135, 136, 196, 197].every(e => state.pokedex.includes(e)); break;
+            
+            case 'A7': reqMet = state.stats.wildWins >= 50; break;
+            case 'A8': reqMet = state.stats.wildWins >= 200; break;
+            case 'A9': reqMet = state.stats.flawlessGym; break;
+            case 'A10': reqMet = state.stats.bossKills >= 10; break;
+            case 'A11': reqMet = state.stats.bossKills >= 50; break;
+            case 'A12': reqMet = state.stats.seHits >= 100; break;
+            case 'A13': reqMet = state.stats.maxDmg >= 1000; break;
+            
+            case 'A14': reqMet = state.badges >= 3; break;
+            case 'A15': reqMet = state.badges >= 9; break;
+            case 'A16': reqMet = state.stats.steps >= 5000; break;
+            case 'A17': reqMet = state.stats.visitedRegions.length >= 9; break;
+            case 'A18': reqMet = state.stats.airportUses >= 20; break;
+            
+            case 'A19': reqMet = state.stats.vitaminsUsed >= 100; break;
+            case 'A20': reqMet = allPkmn.filter(p => p.limitBreak >= 3).length >= 5; break;
+            case 'A21': reqMet = allPkmn.some(p => p.moves.filter(m => m.lv >= 5).length >= 4); break;
+            case 'A22': reqMet = allPkmn.some(p => p.awaken >= 5); break;
+            case 'A23': reqMet = allPkmn.some(p => p.awaken >= 10); break;
+            case 'A24': reqMet = allPkmn.some(p => p.id === 493 && p.awaken >= 10); break;
+            
+            case 'A25': reqMet = state.money >= 1000000; break;
+            case 'A26': reqMet = state.stats.bossDrops >= 50; break;
+            case 'A27': reqMet = state.stats.ballsUsed >= 500; break;
+            
+            case 'A28': reqMet = state.stats.survivals >= 5; break;
+            case 'A29': reqMet = checkMonoType(); break;
+            case 'A30': reqMet = allPkmn.some(p => p.level >= 100 && (p.vitaminCount||0) >= 40 && p.moves.every(m=>m.lv>=5) && p.awaken >= 10); break;
+        }
+
+        if (reqMet) {
+            state.unlockedTitles.push(id);
+            newlyUnlocked = true;
+            showToast(`🏆 Đã mở khóa Thành tựu: ${ACHIEVEMENTS[id].name}!`);
+        }
+    }
+    if (newlyUnlocked) saveGame(false);
+}
+
+function openAchievementsModal() {
+    closeModal('menu-modal');
+    checkAchievements();
+    const list = document.getElementById('achievements-list');
+    list.innerHTML = '';
+    
+    // Đếm tiến độ
+    let total = Object.keys(ACHIEVEMENTS).length;
+    let unlockedCount = state.unlockedTitles.length;
+    
+    let progressDiv = document.createElement('div');
+    progressDiv.className = 'text-center font-bold text-lg mb-2';
+    progressDiv.innerText = `Đã hoàn thành: ${unlockedCount}/${total}`;
+    list.appendChild(progressDiv);
+
+    for (let id in ACHIEVEMENTS) {
+        let ach = ACHIEVEMENTS[id];
+        let isUnlocked = state.unlockedTitles.includes(id);
+        let isEquipped = state.equippedTitle === ach.name;
+
+        let div = document.createElement('div');
+        div.className = `p-3 border-2 rounded shadow-sm ${isUnlocked ? 'bg-white border-black' : 'bg-gray-200 border-gray-400 opacity-70'} flex flex-col gap-2`;
+        
+        let equipBtnHTML = '';
+        if (isEquipped) {
+            equipBtnHTML = `<button class="bg-gray-500 text-white font-bold px-3 py-1 rounded" onclick="equipTitle(null)">Tháo</button>`;
+        } else if (isUnlocked) {
+            equipBtnHTML = `<button class="bg-blue-600 text-white font-bold px-3 py-1 rounded shadow-[1px_1px_0_#000] active:translate-y-[1px]" onclick="equipTitle('${ach.name}')">Đeo</button>`;
+        } else {
+            equipBtnHTML = `<span class="text-sm font-bold text-gray-500">Chưa mở</span>`;
+        }
+
+        div.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div class="font-bold text-xl ${isUnlocked ? 'text-blue-900' : 'text-gray-600'}">${isUnlocked ? '🏆 ' : '🔒 '}${ach.name}</div>
+                ${equipBtnHTML}
+            </div>
+            <div class="text-sm text-gray-800">${ach.desc}</div>
+            <div class="text-xs font-bold text-green-700 bg-green-100 p-1 border border-green-300 rounded mt-1">Buff: ${ach.buffDesc}</div>
+        `;
+        list.appendChild(div);
+    }
+    
+    openModal('achievements-modal');
+}
+
+function equipTitle(titleName) {
+    state.equippedTitle = titleName;
+    updateAllPartyStats(); // Recalculate stats with new title buffs
+    openAchievementsModal(); // Refresh UI
+    renderPlayer(); // For Aura
+}
+
+/* ==========================================
+   UTILS & SAVE/LOAD
+   ========================================== */
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; updateUI(); }
+
+function saveGame(showNotify = false) { 
+    localStorage.setItem('pokeLiteSave', JSON.stringify(state)); 
+    if(showNotify) showToast("Đã lưu quá trình chơi thành công!"); 
+}
+
+function loadGame() { 
+    let s = localStorage.getItem('pokeLiteSave'); 
+    if(s) { 
+        try { 
+            let parsed = JSON.parse(s);
+            state = { ...state, ...parsed };
+            // Ensure nested objects exist for old saves
+            if(!state.stats) state.stats = { wildWins:0, gymWins:0, bossKills:0, seHits:0, maxDmg:0, steps:0, visitedRegions:[0], airportUses:0, vitaminsUsed:0, bossDrops:0, ballsUsed:0, survivals:0 };
+            if(!state.unlockedTitles) state.unlockedTitles = [];
+            if(!state.equippedTitle) state.equippedTitle = null;
+            
+            // Migrate old saves to support new Upgrade variables
+            state.party.concat(state.pc).forEach(p => {
+                if(!p.baseStats) p.baseStats = [...(POKEDEX[p.id]?.stats || [40, 40, 40, 40])];
+                if(p.limitBreak === undefined) p.limitBreak = 0;
+                if(p.awaken === undefined) p.awaken = 0;
+                if(p.heldItem === undefined) p.heldItem = null;
+                if(p.vitaminCount === undefined) p.vitaminCount = 0;
+                p.moves.forEach(m => { if(!m.lv) m.lv = 1; });
+                calcStats(p);
+            });
+        } catch(e) {} 
+    } 
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
